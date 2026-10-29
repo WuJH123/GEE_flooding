@@ -15,7 +15,10 @@ Groundsource v1: https://doi.org/10.5281/zenodo.18647054 — original five colum
     .\.venv\Scripts\python.exe -m pip install -e ".[test]"
     .\.venv\Scripts\python.exe -m pytest -q
     .\.venv\Scripts\python.exe -m gee_flooding --root E:\GEE_flooding init
-    .\.venv\Scripts\python.exe -m gee_flooding --root E:\GEE_flooding download
+    .\.venv\Scripts\python.exe -m gee_flooding --root E:\GEE_flooding inventory
+    .\.venv\Scripts\python.exe -m gee_flooding --root E:\GEE_flooding summarize-labels
+
+**Existing data reuse:** do NOT re-run `download`, `bootstrap-grid`, or `labels` if their current outputs and QC already passed. The download command is a recovery-only option when the source is genuinely absent; the user already has its verified MD5. The no-download inventory checks historic paths read-only, without attempting a network call.
 
 ## First production commands: new-project grid and label QC
 The two previously downloaded SMOD TIFFs are READ-ONLY. Run the built-in freezer to generate a fresh GF10 reference entirely under E:\GEE_flooding:
