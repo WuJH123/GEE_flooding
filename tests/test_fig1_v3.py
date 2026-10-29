@@ -118,3 +118,29 @@ def test_v3_pipeline_synthetic_approved_outputs(tmp_path):
         "independent_groundsource_annotation_queue.csv",
         "physical_evidence_input_template.csv"):
         assert (out/name).exists(),name
+
+
+def test_possible_duplicate_file_does_not_delete_or_guess(tmp_path):
+    from gee_flooding.fig1_v3_gfid import potential_duplicate_audit
+    events=pd.DataFrame({"event_id":["AA","BB","CC"]})
+    f=tmp_path/"Potential_Duplicate_Events.csv"
+    pd.DataFrame({"Event_ID":["AA","CC"],"Paired_ID":["BB","BB"]}).to_csv(f,index=False)
+    flagged,qc=potential_duplicate_audit(f,events)
+    assert flagged=={"AA","CC"}
+    assert qc["status"]=="POSSIBLE_OVERLAPS_ONLY"
+    assert qc["raw_potential_duplicate_pairs"]==2
+    pd.DataFrame({"Unknown_Field":["z"]}).to_csv(f,index=False)
+    flagged,qc=potential_duplicate_audit(f,events)
+    assert flagged==set()
+    assert qc["status"]=="UNRESOLVED_ID_SCHEMA"
+
+def test_manual_review_requires_traceable_independent_source():
+    from gee_flooding.fig1_v3_city import annotate_summary
+    reviewed=pd.DataFrame({
+        "event_id":["a"],"location_verified":["YES"],"date_verified":["YES"],
+        "flood_occurrence_verified":["YES"],"independent_of_groundsource":["YES"],
+        "inclusion_probability":[.2],"reviewer_id":[""],"evidence_source_uri":[""]})
+    assert annotate_summary(reviewed)["reviewed_independent_rows"]==0
+    reviewed.loc[0,"reviewer_id"]="Reviewer 1"
+    reviewed.loc[0,"evidence_source_uri"]="https://example.org/event"
+    assert annotate_summary(reviewed)["reviewed_independent_rows"]==1
