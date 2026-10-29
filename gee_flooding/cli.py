@@ -37,6 +37,10 @@ def main(argv=None):
     if args.command=='download':
         from .download import download_groundsource
         print(download_groundsource(root));return
+    if args.command=='bootstrap-grid':
+        from .grid import freeze
+        print(freeze(root,args.west,args.east,args.urban_min,args.valid_min))
+        return
     if args.command=='labels':
         from .labels import build_labels
         result=build_labels(root,args.raw,args.grid,args.grid_qc,args.batch_size,start=args.start,end=args.end)
