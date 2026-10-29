@@ -50,7 +50,7 @@ def resolve_unclassified_continents(cities,world):
               "unresolved":int(c.continent.eq("Unknown").sum()),
               "method":"Natural Earth representative-point intersects; unresolved remains Unknown"}
 
-def draw_v3(root,city,grid,high,miss,gfid_rows,sensitivity,validation,out):
+def draw_v3(root,city,grid,high,all_labels,gfid_rows,sensitivity,validation,out):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -58,83 +58,94 @@ def draw_v3(root,city,grid,high,miss,gfid_rows,sensitivity,validation,out):
     plt.rcParams.update({"font.size":9,"font.family":"DejaVu Sans","pdf.fonttype":42,
                          "svg.fonttype":"none","axes.spines.right":False,
                          "axes.spines.top":False})
-    fig=plt.figure(figsize=(18,11),layout="constrained")
-    gs=fig.add_gridspec(2,3,height_ratios=[1,1],width_ratios=[1.25,1,.95])
+    fig=plt.figure(figsize=(18,11.2),layout="constrained")
+    gs=fig.add_gridspec(2,3,height_ratios=[1,1],width_ratios=[1.28,1,1])
     a=fig.add_subplot(gs[0,0]);b=fig.add_subplot(gs[0,1]);c=fig.add_subplot(gs[0,2])
-    d=fig.add_subplot(gs[1,0]);e=fig.add_subplot(gs[1,1:])
-    a.set_title("a  Urban study frame and news coverage",loc="left",weight="bold")
-    valid=set(high.grid_id)
-    zero=grid[~grid.grid_id.isin(valid)]
-    a.scatter(zero.longitude,zero.latitude,c="#CBD2D7",s=.17,alpha=.25,
+    d=fig.add_subplot(gs[1,0]);e=fig.add_subplot(gs[1,1]);f=fig.add_subplot(gs[1,2])
+
+    a.set_title("a  GF10 study frame and geocoded news coverage",loc="left",weight="bold")
+    zero=grid[~grid.grid_id.isin(set(high.grid_id))]
+    a.scatter(zero.longitude,zero.latitude,c="#CBD2D7",s=.18,alpha=.20,
               rasterized=True,zorder=1)
-    high_grids=high.groupby("grid_id").agg(reports=("event_id","size")).reset_index()
-    coords=high_grids.merge(grid[["grid_id","longitude","latitude"]],
-                            on="grid_id",how="left",validate="one_to_one")
-    h=a.hexbin(coords.longitude,coords.latitude,C=coords.reports,
-                reduce_C_function=np.sum,gridsize=(108,48),extent=(-180,180,-60,83),
-                mincnt=1,cmap="viridis",norm=LogNorm(),alpha=.91)
-    fig.colorbar(h,ax=a,shrink=.60,pad=.01,label="High-specificity report UUIDs / display hexagon")
+    counts=high.groupby("grid_id").agg(reports=("event_id","size")).reset_index()
+    co=counts.merge(grid[["grid_id","longitude","latitude"]],
+                    on="grid_id",how="left",validate="one_to_one")
+    h=a.hexbin(co.longitude,co.latitude,C=co.reports,
+               reduce_C_function=np.sum,gridsize=(108,48),extent=(-180,180,-60,83),
+               mincnt=1,cmap="viridis",norm=LogNorm(),alpha=.92)
+    fig.colorbar(h,ax=a,shrink=.65,pad=.01,label="HIGH news UUIDs / display hexagon")
     a.set(xlim=(-180,180),ylim=(-60,83),xlabel="Longitude",ylabel="Latitude")
     a.grid(alpha=.12)
 
-    b.set_title("b  News label localization audit",loc="left",weight="bold")
+    b.set_title("b  Original-news geocoding audit",loc="left",weight="bold")
     by=high.attrs.get("quality_counts",{})
-    vals=[by.get(x,0) for x in (
-        "HIGH_GEOCODE_SPECIFICITY","MEDIUM_GEOCODE_SPECIFICITY",
-        "LOW_GEOCODE_SPECIFICITY","NOT_ELIGIBLE")]
-    labels=["HIGH","MEDIUM","LOW","Not eligible"]
-    b.barh(labels[::-1],np.array(vals[::-1])/1e6,
-           color=["#A5AFB9","#BBA471","#76A89A","#2B7F7A"])
-    b.set(xlabel="Groundsource news UUIDs (millions)")
-    b.grid(axis="x",alpha=.15)
-    b.set_xlim(0,max(vals)/1e6*1.25)
+    vals=[int(by.get(x,0)) for x in (
+         "HIGH_GEOCODE_SPECIFICITY","MEDIUM_GEOCODE_SPECIFICITY",
+         "LOW_GEOCODE_SPECIFICITY","NOT_ELIGIBLE")]
+    names=["HIGH","MEDIUM","LOW","Not eligible"]
+    b.barh(names[::-1],np.array(vals[::-1])/1e6,
+           color=["#ACB5BD","#BFA477","#77AC9F","#297F76"])
+    b.set(xlabel="Original Groundsource UUIDs (millions)")
+    b.grid(axis="x",alpha=.12);b.set_xlim(0,max(vals)/1e6*1.28)
     for i,v in enumerate(vals[::-1]):
         b.text(v/1e6+max(vals)/1e6*.02,i,f"{v:,}",fontsize=8,va="center")
 
-    c.set_title("c  GFID source/date acceptance",loc="left",weight="bold")
+    c.set_title("c  News availability (not flood incidence)",loc="left",weight="bold")
+    annual=(all_labels.assign(year=pd.to_datetime(all_labels.date).dt.year)
+            .groupby(["year","geocode_quality"]).size().rename("n").reset_index())
+    palette={"HIGH_GEOCODE_SPECIFICITY":"#297F76",
+             "MEDIUM_GEOCODE_SPECIFICITY":"#BB9862",
+             "LOW_GEOCODE_SPECIFICITY":"#7D94AD"}
+    for k,color in palette.items():
+        q=annual[annual.geocode_quality.eq(k)]
+        c.plot(q.year,q.n/1000,label=k.split("_")[0],color=color,lw=1.7)
+    c.legend(frameon=False,fontsize=8)
+    c.set(xlabel="Year",ylabel="Reported UUIDs (thousands)")
+    c.grid(alpha=.13)
+
+    d.set_title("d  GFID harmonization attrition by source",loc="left",weight="bold")
     pivot=gfid_rows.pivot_table(index="family",columns="reason",
-                values="n",aggfunc="sum",fill_value=0)
-    order=[x for x in FAMILIES if x in pivot.index]+[x for x in pivot.index if x not in FAMILIES]
-    accepted=np.array([pivot.loc[x,"ACCEPTED"] if "ACCEPTED" in pivot else 0 for x in order])
-    rejected=pivot.sum(axis=1).reindex(order).to_numpy()-accepted
-    y=np.arange(len(order))
-    c.barh(y,accepted/1000,color="#2B7F7A",label="Accepted")
-    c.barh(y,rejected/1000,left=accepted/1000,color="#C8B8A1",label="Excluded / uncertain")
-    c.set(yticks=y,yticklabels=order,xlabel="GFID source records (thousands)")
-    c.legend(loc="lower right",fontsize=8,frameon=False)
-    c.grid(axis="x",alpha=.14)
+                               values="n",aggfunc="sum",fill_value=0)
+    names=[x for x in FAMILIES if x in pivot.index]+[
+        x for x in pivot.index if x not in FAMILIES]
+    accepted=np.array([pivot.loc[x,"ACCEPTED"] if "ACCEPTED" in pivot else 0 for x in names])
+    rejected=pivot.sum(axis=1).reindex(names).to_numpy()-accepted
+    yy=np.arange(len(names))
+    d.barh(yy,accepted/1000,color="#297F76",label="Accepted")
+    d.barh(yy,rejected/1000,left=accepted/1000,color="#C4B09B",label="Excluded/uncertain")
+    d.set(yticks=yy,yticklabels=names,xlabel="Source records (thousands)")
+    d.legend(frameon=False,fontsize=8);d.grid(axis="x",alpha=.13)
 
-    d.set_title("d  GFID catalogue concordance — not physical truth",loc="left",weight="bold")
+    e.set_title("e  GFID concordance, shifted-time control",loc="left",weight="bold")
     if not sensitivity.empty:
-        obs=sensitivity[(sensitivity.radius_km.eq(75))&
-                        (sensitivity.day_window.eq(7))]
-        obs=obs.pivot(index="family",columns="control",values="candidate_grid_days")
-        fam=[x for x in FAMILIES if x in obs.index]
+        tab=sensitivity[sensitivity.radius_km.eq(75)&sensitivity.day_window.eq(7)]
+        pv=tab.pivot(index="family",columns="control",values="candidate_grid_days")
+        fam=[x for x in FAMILIES if x in pv.index]
         yy=np.arange(len(fam))
-        one=obs.reindex(fam).get("OBSERVED",pd.Series(0,index=fam)).fillna(0)
-        two=obs.reindex(fam).get("SHIFT_NEWS_183_DAYS",pd.Series(0,index=fam)).fillna(0)
-        d.barh(yy-.16,one.to_numpy()/1000,height=.30,label="Observed 75 km / 7 d",color="#537FA0")
-        d.barh(yy+.16,two.to_numpy()/1000,height=.30,label="Shifted-date control",color="#C4A26E")
-        d.set(yticks=yy,yticklabels=fam,xlabel="Candidate GF10 grid-days (thousands)")
-        d.legend(fontsize=8,frameon=False)
-    else:
-        d.text(.05,.55,"GFID sensitivity pending",transform=d.transAxes)
+        obs=pv.reindex(fam).get("OBSERVED",pd.Series(0,index=fam)).fillna(0)
+        neg=pv.reindex(fam).get("SHIFT_NEWS_183_DAYS",pd.Series(0,index=fam)).fillna(0)
+        e.barh(yy-.17,obs.to_numpy()/1000,height=.31,color="#507EA4",label="Observed 75km/7d")
+        e.barh(yy+.17,neg.to_numpy()/1000,height=.31,color="#C19C67",label="+183d shifted control")
+        e.set(yticks=yy,yticklabels=fam,xlabel="Candidate GF10 grid-days (thousands)")
+        e.legend(frameon=False,fontsize=7)
+    else:e.text(.05,.55,"GFID comparison pending",transform=e.transAxes)
+    e.grid(axis="x",alpha=.12)
 
-    e.set_title("e  Official-city development eligibility, by continent",loc="left",weight="bold")
-    x=(city.groupby("continent",dropna=False)
-       .agg(n=("city_id","size"),eligible=("eligible_using_only_development_years","sum"))
-       .sort_values("n",ascending=True))
-    y=np.arange(len(x))
-    e.barh(y,100*x.eligible/x.n,color="#2D8191")
-    e.set(yticks=y,yticklabels=[str(s) for s in x.index],
-          xlabel="Eligible UCDB cities using 2021–2023 (%)",xlim=(0,100))
-    e.grid(axis="x",alpha=.13)
-    title="Figure 1 v3 | Global urban flood observation coverage and evidence limitations"
-    fig.suptitle(title,fontsize=16,weight="bold")
+    f.set_title("f  Pre-2024 city sample eligibility",loc="left",weight="bold")
+    reg=(city.groupby("continent",dropna=False)
+         .agg(n=("city_id","size"),eligible=("eligible_using_only_development_years","sum"))
+         .sort_values("n"))
+    yy=np.arange(len(reg))
+    f.barh(yy,100*reg.eligible/reg.n,color="#2E8893")
+    f.set(yticks=yy,yticklabels=[str(k) for k in reg.index],
+          xlabel="UCDB cities eligible from 2021–2023 (%)",xlim=(0,100))
+    f.grid(axis="x",alpha=.12)
+    fig.suptitle("Figure 1 v3 | Urban flood-report coverage and observational reliability",
+                 fontsize=16,fontweight="bold")
     fig.text(.5,.003,
-             "News location is a geocoder polygon, not inundation. No-report ≠ no-flood. "
-             "GFID overlap = candidate catalogue concordance. "
-             f"Physical review: {validation.get('status','PENDING')}.",
+             "GFID: candidate catalogue overlap, not inundation truth. "
+             "No report is not a verified non-flood. "
+             f"Independent physical evidence: {validation.get('status','PENDING')}.",
              ha="center",fontsize=9)
     for ext in ("png","pdf","svg"):
         fig.savefig(out/f"Figure1_GEE_v3.{ext}",
@@ -212,7 +223,7 @@ def build(root,labels_path,grid_path,label_qc_path,v2_dir,gfid,
         phys.to_parquet(out/"physical_reviewed_events.parquet",index=False)
         phys_points.to_csv(out/"physical_pluvial_support.csv",index=False)
     high.attrs["quality_counts"]=qc["count_by_quality"]
-    draw_v3(root,city,grid,high,missing,reason_table,sensitivity,valid_report,out)
+    draw_v3(root,city,grid,high,labels,reason_table,sensitivity,valid_report,out)
     result={
         "status":"PREPUBLICATION_P0_PENDING" if not physical else "PHYSICAL_CASE_STUDY_REVIEW_PENDING",
         "source_original_raw_rows":n,
