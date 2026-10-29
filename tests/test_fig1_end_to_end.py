@@ -45,7 +45,7 @@ def test_complete_figure1_synthetic_pipeline(tmp_path):
     assert result["raw_groundsource_rows"]==4
     assert result["mapped_geocoded_reports"]==3
     assert result["high_distinct_grid_days"]==3
-    assert result["eligible_cities"]==2
+    assert result["eligible_cities"]==1  # city B has no high-specificity news
     assert result["gfid_candidate_grid_days_by_source_family"].get("DFO")==1
     output=tmp_path/"outputs/fig1_test"
     for name in ("Figure1_GEE_observation.png","Figure1_GEE_observation.pdf",
