@@ -49,3 +49,18 @@ Do NOT execute these steps until the independent storm catalogue and both input 
 - Do not silently substitute SMOD urban fraction for GHS-BUILT-S built fraction.
 - This first release is a reproducible grid+label Stage 0–2 research scaffold, not a completed worldwide ML risk map or a live GEE export pipeline.
 - Details: docs/RESEARCH_PROTOCOL.md and config/project.json.
+
+## GEE manuscript Figure 1 — NEW (no downloads, independent project)
+
+Figure1 has five panels: news coverage, geocode audit, annual archive availability, GFID catalogue candidate concordance (not satellite validation), and official UCDB city study eligibility. It is NOT the Nature Cities Figure1.
+
+Full data matrix, paper Data availability citations and caveats: [Figure1 data availability](docs/FIGURE1_DATA_AVAILABILITY.md).
+
+Read-only local execution (existing environment and locally held data):
+
+    Set-Location E:\GEE_flooding
+    .\scripts\run_fig1.ps1 -Root E:\GEE_flooding -Tag fig1_v1
+
+No new Groundsource/GF10/GFID download and no GEE submission. Results: E:\GEE_flooding\outputs\fig1_v1, including PNG/PDF and quality provenance JSON. If the existing Natural Earth or Koppen file path is unavailable use -SkipWorld or -SkipKoppen for an explicitly incomplete draft, or correct the local path before calling the CLI.
+
+The new Figure1 remains DRAFT_NEEDS_INDEPENDENT_PHYSICAL_VALIDATION until previously downloaded CN-Floods/Henan/London or actual successful GFD/SAR exports undergo independent validation. Eight READY Earth Engine tasks are not completed physical evidence.
