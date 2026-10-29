@@ -1,3 +1,7 @@
+# Current no-download continuation (2026-10-29)
+
+The local data are ALREADY present: original Groundsource 2,646,302; new GF10 166,414; mapped labels 2,202,651 (high 1,788,759). Run `inventory` and `summarize-labels` **only**; neither downloads nor overwrites existing labels. Outputs under E:\GEE_flooding\reports. Historic 20-km GHSL/M3 climate/static products can be viewed and audited, but are NOT grid-compatible with new 10-km training. Complete new 10km weather exposures and static terrain features remain missing. Old local directory E:\Global_flooding is read-only.
+
 # Windows runbook — ALL new outputs E:\GEE_flooding
 
 ## First local setup (PowerShell)
@@ -8,7 +12,10 @@
 5. & $PY -m pip install -e ".[test]"
 6. & $PY -m pytest -q
 7. & $PY -m gee_flooding --root "E:\GEE_flooding" init
-8. & $PY -m gee_flooding --root "E:\GEE_flooding" download
+8. & $PY -m gee_flooding --root "E:\GEE_flooding" inventory
+9. & $PY -m gee_flooding --root "E:\GEE_flooding" summarize-labels
+
+**Current user run (2026-10-29): original Zenodo dataset, GF10 bootstrap, and initial labels audit already finished. DO NOT re-download or rerun Stage 1–4.**
 
 The raw file is now E:\GEE_flooding\data\raw\groundsource_2026.parquet, verified with Zenodo MD5.
 
