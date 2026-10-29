@@ -34,7 +34,7 @@ def parse_dates(series):
     if getattr(parsed.dt,"tz",None) is not None:parsed=parsed.dt.tz_localize(None)
     return parsed.dt.normalize().mask(partial),partial
 
-def gfid_audit(workbook,begin="2000-01-01",end="2025-12-31"):
+def gfid_audit(workbook,begin="2000-01-01",analysis_end="2025-12-31"):
     """Keep every raw row with an *exclusive* documented failure reason.
 
     When End Date is unknown, use a one-day candidate with explicit flag;
@@ -77,7 +77,7 @@ def gfid_audit(workbook,begin="2000-01-01",end="2025-12-31"):
     mark(end.isna(),"MISSING_END_AND_START")
     mark(end<start,"END_BEFORE_START")
     mark(~valid_xy,"MISSING_OR_INVALID_COORDINATES")
-    begin=pd.Timestamp(begin);finish=pd.Timestamp(end if isinstance(end,str) else "2025-12-31")
+    begin=pd.Timestamp(begin);finish=pd.Timestamp(analysis_end)
     # Date window overlap (only actual dated events, not assumed year-only dates).
     mark((start>finish)|(end<begin),"OUTSIDE_ANALYSIS_WINDOW")
     eventids=raw[eid].astype("string") if eid else pd.Series([f"ROW_{i}" for i in range(len(raw))])
