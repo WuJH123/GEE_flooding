@@ -12,5 +12,12 @@
   "study_start": "2000-01-01",
   "study_end": "2025-12-31",
   "primary_outcome": "observed news flood onset versus unlabeled",
-  "analysis_warning": "Do not claim true flood probability without independent validation; SMOD urban is not built surface."
+  "analysis_warning": "Do not claim true flood probability without independent validation; SMOD urban is not built surface.",
+  "grid10_new_project": "E:\\GEE_flooding\\data\\reference\\grid10_urban_2020.parquet",
+  "grid_qc_new_project": "E:\\GEE_flooding\\data\\reference\\grid10_qc.json",
+  "source_tif_west_readonly": "E:\\Global_flooding\\grid10\\gee_tifs\\gf10_smod2020_v1_s00.tif",
+  "source_tif_east_readonly": "E:\\Global_flooding\\grid10\\gee_tifs\\gf10_smod2020_v1_s01.tif",
+  "weather_panel_new_project": "E:\\GEE_flooding\\data\\derived\\storm_exposure_weather.parquet",
+  "static_factors_new_project": "E:\\GEE_flooding\\data\\derived\\static_grid_factors.parquet",
+  "current_stage": "P0 original data label audit; storm-exposure and features pending"
 }
