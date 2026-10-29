@@ -120,12 +120,11 @@ Test-Path E:\GEE_flooding\outputs\fig1_v1\fig1_grid_dominant_ucdb.parquet
 ### 1. Authenticate once for public GEE assets
 
 ```powershell
-& $PY -m ee authenticate
-& $PY -m ee set_project YOUR_REGISTERED_GEE_PROJECT_ID
+& "E:\\GEE_flooding\\.venv\\Scripts\\earthengine.exe" authenticate
+& "E:\\GEE_flooding\\.venv\\Scripts\\earthengine.exe" set_project YOUR_REGISTERED_GEE_PROJECT_ID
 ```
 
-If your ee CLI does not expose `set_project`, follow the current Earth Engine
-Python authentication/project instructions. No credential is stored in GitHub.
+The Earth Engine command-line executable is installed by `earthengine-api`; `python -m ee` is not the documented CLI entry point. No credential is stored in GitHub.
 Use **one small batch** first, avoid accidental global exports.
 
 ### 2. Pilot export: 50 GF10 cells × one UTC day, no task without --submit
