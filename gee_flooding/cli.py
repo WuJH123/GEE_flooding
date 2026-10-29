@@ -9,6 +9,9 @@ def parser():
     commands=p.add_subparsers(dest='command',required=True)
     commands.add_parser('init',help='Create local data/outputs/reports dirs')
     commands.add_parser('download',help='Get original Groundsource from Zenodo, verify MD5')
+    commands.add_parser('inventory',help='Check already available E-drive datasets; NO DOWNLOAD')
+    s=commands.add_parser('summarize-labels',help='Unique news UUID/grid-day and annual quality summary; NO DOWNLOAD')
+    s.add_argument('--labels',type=Path,default=None)
     s=commands.add_parser('bootstrap-grid',help='Freeze GF10 2020 from two read-only SMOD TIFFs')
     s.add_argument('--west',type=Path,required=True)
     s.add_argument('--east',type=Path,required=True)
@@ -37,6 +40,12 @@ def main(argv=None):
     if args.command=='download':
         from .download import download_groundsource
         print(download_groundsource(root));return
+    if args.command=='inventory':
+        from .audit import inventory
+        print(inventory(root));return
+    if args.command=='summarize-labels':
+        from .audit import summarize_labels
+        print(summarize_labels(root,args.labels));return
     if args.command=='bootstrap-grid':
         from .grid import freeze
         print(freeze(root,args.west,args.east,args.urban_min,args.valid_min))
