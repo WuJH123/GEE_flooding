@@ -261,7 +261,7 @@ def plot_figure(grid,news,annual,city,source,out,world=None):
     bb.set_xlabel("Groundsource UUID records (millions)")
     bb.set_title("b  Raw-to-grid localization audit",loc="left",weight="bold")
     for i,n in enumerate(values[::-1]):
-        bb.text(n/1e6+.005,i,f"{n:,}",va="center",fontsize=8)
+        bb.text(n/1e6+max(values)/1e6*.015,i,f"{n:,}",va="center",fontsize=8)
     bb.set_xlim(0,max(values)/1e6*1.25)
     aa.grid(alpha=.12);bb.grid(axis="x",alpha=.1)
     # c: annual reporting not flood-incidence trends
