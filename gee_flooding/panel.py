@@ -16,6 +16,10 @@ def assemble(root,weather,static,labels):
         missing=set(required)-set(frame.columns)
         if missing:raise ValueError(f'{name} missing {sorted(missing)}')
     for x in (w,l):x['date']=pd.to_datetime(x.date,errors='raise').dt.normalize()
+    # 2020 fixed SMOD and 2021 WorldCover are retrospective context only.
+    # Never use them to claim prospective prediction of earlier events.
+    if (w.date < pd.Timestamp('2021-01-01')).any():
+        raise ValueError('Pre-2021 exposures require historically matched land-cover and urban predictors')
     for x in (w,s,l):x['grid_id']=x.grid_id.astype(str)
     if w.duplicated(['grid_id','date']).any():
         raise ValueError('Multiple storm IDs per grid-day: resolve attribution before assigning news labels')
