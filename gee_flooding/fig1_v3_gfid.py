@@ -128,3 +128,35 @@ def candidate_sensitivity(high_grid_days,gfid,windows=((25,0),(75,3),(75,7),(150
                         "family":family,"candidate_grid_days":int(counts.get(family,0)),
                         "high_grid_days_examined":len(high_grid_days)})
     return pd.DataFrame(reports)
+
+
+def potential_duplicate_audit(path,full_gfid_audit):
+    """Inspect USGS possible-duplicate rows, do not auto-delete any records.
+
+    A possible link is accepted as machine-key linkage only if the chosen ID
+    column maps >=50% of non-null values to GFID IDs. Unknown columns remain
+    documented uncertainty, not falsely asserted deduplication.
+    """
+    import re
+    table=pd.read_csv(path,low_memory=False)
+    norm={re.sub(r"[^a-z0-9]","",str(c).lower()):c for c in table}
+    candidates=[norm[k] for k in ("eventid","id","gfidid","recordid") if k in norm]
+    known=set(full_gfid_audit.event_id.dropna().astype(str))
+    attempted=[]
+    selected=None
+    for col in candidates:
+        ids=table[col].dropna().astype(str).str.strip()
+        rate=float(ids.isin(known).mean()) if len(ids) else 0.
+        attempted.append({"column":col,"nonempty_rows":len(ids),"key_match_rate":rate})
+        if rate>=.50 and selected is None:selected=col
+    flagged=set()
+    if selected:
+        flagged=set(table[selected].dropna().astype(str).str.strip()) & known
+    summary={"raw_potential_duplicate_pairs":len(table),
+             "columns":list(table.columns),
+             "attempted_id_joins":attempted,
+             "linked_key_column":selected,
+             "unique_gfid_ids_with_possible_overlap":len(flagged),
+             "status":"POSSIBLE_OVERLAPS_ONLY" if selected else "UNRESOLVED_ID_SCHEMA",
+             "warning":"USGS pairs are candidate duplicated events, not confirmed duplicates. No row was deleted."}
+    return flagged,summary
