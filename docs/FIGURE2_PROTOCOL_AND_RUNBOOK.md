@@ -64,8 +64,8 @@ All training uses the same data rows, exposure thresholds and spatial units.
 | Original Groundsource | E:\GEE_flooding\data\raw\groundsource_2026.parquet |
 | High specificity label map | E:\GEE_flooding\outputs\labels\groundsource_gf10_primary.parquet |
 | Label QC | E:\GEE_flooding\reports\qc\labels_qc.json |
-| Figure1 UCDB grid crosswalk | E:\GEE_flooding\outputs\fig1_v1\fig1_grid_dominant_ucdb.parquet (change to finished v3 tag) |
-| Figure1 city/continent/country/climate/eligibility audit | E:\GEE_flooding\outputs\fig1_v1\fig1_ucdb_city_sample_audit.csv (change to v3) |
+| Figure1 UCDB grid crosswalk | E:\GEE_flooding\outputs\fig1_v2\fig1_grid_dominant_ucdb.parquet (v3 audit consumes this v2 crosswalk) |
+| Figure1 city/continent/country/climate/eligibility audit | E:\GEE_flooding\outputs\fig1_v2\fig1_ucdb_city_sample_audit.csv (v3 audit consumes this v2 city table) |
 | Official UCDB raw geometry | E:\数据集\2024城市中心数据库GHS_UCDB_GLOBE_R2024A_V1_1\GHS_UCDB_GLOBE_R2024A.gpkg |
 | GFID archives | Can be reused for Fig1 catalogue agreement ONLY; never used as physical flood labels |
 
@@ -114,7 +114,7 @@ $PY = "E:\GEE_flooding\.venv\Scripts\python.exe"
 & $PY -m pytest -q
 & $PY -m gee_flooding --root E:\GEE_flooding inventory
 & $PY -m gee_flooding --root E:\GEE_flooding summarize-labels
-Test-Path E:\GEE_flooding\outputs\fig1_v1\fig1_grid_dominant_ucdb.parquet
+Test-Path E:\GEE_flooding\outputs\fig1_v2\fig1_grid_dominant_ucdb.parquet
 ```
 
 ### 1. Authenticate once for public GEE assets
@@ -151,14 +151,14 @@ and distributed local extraction, with quotas and a resumable manifest first.
 
 ### 3. Assemble once the entire declared pilot coverage is downloaded
 
-The example below requires 50 cells for **every UTC day** of August 2023, plus
+Figure1 v3 stores P0 evidence and city-development audit in outputs/fig1_v3_*/; its upstream UCDB crosswalk and city table are still supplied by outputs/fig1_v2/. Review both before fitting.\n\nThe example below requires 50 cells for **every UTC day** of August 2023, plus
 the full seven-day antecedent precipitation history and one static CSV per cell.
 A one-day export cannot satisfy a month-long model. Replace date/row selection
 with the actual downloaded batch and full range. City crosswalk coverage is
 mandatory: choose a batch where all cells have an official UCDB city mapping.
 
 ```powershell
-$F1="E:\GEE_flooding\outputs\fig1_v1"
+$F1="E:\GEE_flooding\outputs\fig1_v2"
 & $PY -m gee_flooding.fig2_prepare --root E:\GEE_flooding `
  --grid $GRID --grid-cities "$F1\fig1_grid_dominant_ucdb.parquet" `
  --weather-dir "E:\GEE_flooding\data\gee_exports\fig2_weather" `
