@@ -12,15 +12,15 @@
 
 The raw file is now E:\GEE_flooding\data\raw\groundsource_2026.parquet, verified with Zenodo MD5.
 
-## Read-only upstream references (do not overwrite)
-- E:\Global_flooding\grid10\universe\grid10_urban_2020.parquet
-- E:\Global_flooding\grid10\universe\62b_grid10_qc.json
-- E:\Global_flooding\grid10\qc\72_integrity.json
+## Independent grid freeze inside this new project
+Read the two existing SMOD TIFFs in the old project (read-only). Write a fresh 10 km grid and QC exclusively to E:\GEE_flooding:
 
-If these do not exist, first generate them from previously downloaded SMOD TIFFs in the old project (Stage62b / Stage72), not from 20km matched labels. You may copy the verified grid+QC into E:\GEE_flooding\data\external_reference and point input arguments there.
+& $PY -m gee_flooding --root E:\GEE_flooding bootstrap-grid --west E:\Global_flooding\grid10\gee_tifs\gf10_smod2020_v1_s00.tif --east E:\Global_flooding\grid10\gee_tifs\gf10_smod2020_v1_s01.tif
+
+Outputs: E:\GEE_flooding\data\reference\grid10_urban_2020.parquet and grid10_qc.json, with PASS_10KM_GRID_CONTRACT.
 
 ## Execute independent event audit (one PowerShell line)
-& $PY -m gee_flooding --root E:\GEE_flooding labels --raw E:\GEE_flooding\data\raw\groundsource_2026.parquet --grid E:\Global_flooding\grid10\universe\grid10_urban_2020.parquet --grid-qc E:\Global_flooding\grid10\universe\62b_grid10_qc.json --batch-size 10000
+& $PY -m gee_flooding --root E:\GEE_flooding labels --raw E:\GEE_flooding\data\raw\groundsource_2026.parquet --grid E:\GEE_flooding\data\reference\grid10_urban_2020.parquet --grid-qc E:\GEE_flooding\data\reference\grid10_qc.json --batch-size 10000
 
 QC: E:\GEE_flooding\reports\qc\labels_qc.json.
 Products: E:\GEE_flooding\outputs\labels\groundsource_gf10_primary.parquet and geocode_event_audit.parquet.
