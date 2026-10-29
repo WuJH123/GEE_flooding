@@ -28,6 +28,19 @@ def parser():
     s.add_argument('--weather',type=Path,required=True)
     s.add_argument('--static',type=Path,required=True)
     s.add_argument('--labels',type=Path,required=True)
+    s=commands.add_parser('fig1',help='GEE article Figure1: news coverage, city eligibility, source concordance; NO DOWNLOAD')
+    s.add_argument('--grid',type=Path,required=True)
+    s.add_argument('--labels',type=Path,required=True)
+    s.add_argument('--label-qc',type=Path,required=True)
+    s.add_argument('--ucdb',type=Path,required=True)
+    s.add_argument('--ucdb-crosswalk',type=Path)
+    s.add_argument('--koppen',type=Path)
+    s.add_argument('--gfid',type=Path)
+    s.add_argument('--world',type=Path)
+    s.add_argument('--physical',type=Path)
+    s.add_argument('--tag',default='fig1_v1')
+    s.add_argument('--city-min-reports',type=int,default=5)
+    s.add_argument('--city-min-years',type=int,default=3)
     s=commands.add_parser('baseline',help='M0-M2 NEWS-REPORT proxy only, dual city+storm holdouts')
     s.add_argument('--panel',type=Path,required=True)
     s.add_argument('--seed',type=int,default=42)
@@ -59,6 +72,13 @@ def main(argv=None):
     elif args.command=='baseline':
         from .train import run
         result=run(root,args.panel,args.seed)
+    elif args.command=='fig1':
+        from .fig1 import build
+        result=build(root,args.grid,args.labels,args.label_qc,args.ucdb,
+                     tag=args.tag,crosswalk=args.ucdb_crosswalk,
+                     koppen=args.koppen,gfid=args.gfid,world=args.world,
+                     physical=args.physical,city_min_reports=args.city_min_reports,
+                     city_min_years=args.city_min_years)
     print(result)
 
 if __name__=='__main__':main()
