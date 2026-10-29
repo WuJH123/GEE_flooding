@@ -212,10 +212,11 @@ def build(root,labels_path,grid_path,label_qc_path,v2_dir,gfid,
     samples.to_csv(out/"independent_groundsource_annotation_queue.csv",index=False)
     dirs.to_csv(out/"local_physical_source_inventory.csv",index=False)
     if duplicates:
-        dup=pd.read_csv(duplicates,nrows=0)
-        # No automatic assumption: USGS flags *potential* duplicates, not confirmed pairs.
-        dups={"source_path":str(duplicates),"columns":dup.columns.tolist(),
-              "note":"Do not deduplicate GFID automatically from potential duplicate flags."}
+        from .fig1_v3_gfid import potential_duplicate_audit
+        flagged,dups=potential_duplicate_audit(duplicates,audit)
+        dups["source_path"]=str(duplicates)
+        dups["accepted_rows_with_potential_overlap"]=int(
+            accepted.event_id.astype(str).isin(flagged).sum())
     else:dups={"status":"DUPLICATE_SCREEN_NOT_PROVIDED"}
     if phys is None:
         template(out/"physical_evidence_input_template.csv")
