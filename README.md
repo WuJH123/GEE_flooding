@@ -17,10 +17,14 @@ Groundsource v1: https://doi.org/10.5281/zenodo.18647054 — original five colum
     .\.venv\Scripts\python.exe -m gee_flooding --root E:\GEE_flooding init
     .\.venv\Scripts\python.exe -m gee_flooding --root E:\GEE_flooding download
 
-## First production command: geocode audit on native 10 km grid
-Ensure the old Stage62b + Stage72 QC passed and the 10 km Parquet exists (READ-ONLY). Then run:
+## First production commands: new-project grid and label QC
+The two previously downloaded SMOD TIFFs are READ-ONLY. Run the built-in freezer to generate a fresh GF10 reference entirely under E:\GEE_flooding:
 
-    .\.venv\Scripts\python.exe -m gee_flooding --root E:\GEE_flooding labels --raw E:\GEE_flooding\data\raw\groundsource_2026.parquet --grid E:\Global_flooding\grid10\universe\grid10_urban_2020.parquet --grid-qc E:\Global_flooding\grid10\universe\62b_grid10_qc.json
+    .\.venv\Scripts\python.exe -m gee_flooding --root E:\GEE_flooding bootstrap-grid --west E:\Global_flooding\grid10\gee_tifs\gf10_smod2020_v1_s00.tif --east E:\Global_flooding\grid10\gee_tifs\gf10_smod2020_v1_s01.tif
+
+It writes the grid and QC only under E:\GEE_flooding\data\reference. Then assign original source events:
+
+    .\.venv\Scripts\python.exe -m gee_flooding --root E:\GEE_flooding labels --raw E:\GEE_flooding\data\raw\groundsource_2026.parquet --grid E:\GEE_flooding\data\reference\grid10_urban_2020.parquet --grid-qc E:\GEE_flooding\data\reference\grid10_qc.json
 
 Results: outputs/labels (primary news geocodes and full rejection audit) and reports/qc/labels_qc.json, all under E:\GEE_flooding. HIGH geocode quality is a *geometry-specificity proxy* only.
 
@@ -40,5 +44,5 @@ Do NOT execute these steps until the independent storm catalogue and both input 
 - Never store large parquet, GeoTIFF, data secrets or trained models on GitHub.
 - Dataset/source copyright remains with publishers; Groundsource CC BY 4.0.
 - Do not silently substitute SMOD urban fraction for GHS-BUILT-S built fraction.
-- This first release is a reproducible Stage 0–2 research scaffold, not a completed worldwide ML risk map or a live GEE export pipeline.
+- This first release is a reproducible grid+label Stage 0–2 research scaffold, not a completed worldwide ML risk map or a live GEE export pipeline.
 - Details: docs/RESEARCH_PROTOCOL.md and config/project.json.
