@@ -22,7 +22,7 @@ def test_primary_label_count_contract():
     assert check_label_contract(news,qc_for(),grid)==3
     with pytest.raises(ValueError,match="not unique"):
         check_label_contract(news.assign(event_id=["x","x"]),qc_for(),grid)
-    with pytest.raises(ValueError,match="Matched count"):
+    with pytest.raises(ValueError,match="reconcile"):
         bad=qc_for();bad["count_by_quality"]["HIGH_GEOCODE_SPECIFICITY"]=1
         check_label_contract(news,bad,grid)
 
