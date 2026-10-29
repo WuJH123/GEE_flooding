@@ -120,7 +120,7 @@ def launch(grid, start_row, count, mode, day, folder, submit=False):
                                                   "vegetation_fraction"]))
     task.start()
     summary.update(task_submitted=True,task_id=task.id,
-                   "important":"Download the matching Drive CSV. Do not treat READY as completed.")
+                   important="Download the matching Drive CSV. Do not treat READY as completed.")
     return summary
 
 
