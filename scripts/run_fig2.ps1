@@ -3,7 +3,7 @@
 param(
     [ValidateSet("preflight","prepare","train")][string]$Phase="preflight",
     [string]$Root="E:\GEE_flooding",
-    [string]$Fig1Tag="fig1_v1",
+    [string]$Fig1Tag="fig1_v2",
     [string]$Tag="fig2_v1",
     [string]$Start="2023-08-01",
     [string]$End="2023-08-31",
