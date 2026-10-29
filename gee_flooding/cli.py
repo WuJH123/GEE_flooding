@@ -41,6 +41,19 @@ def parser():
     s.add_argument('--tag',default='fig1_v1')
     s.add_argument('--city-min-reports',type=int,default=5)
     s.add_argument('--city-min-years',type=int,default=3)
+    s=commands.add_parser('fig1-v3',help='P0 audit + publication draft figure, NO downloads or GEE submissions')
+    s.add_argument('--grid',type=Path,required=True)
+    s.add_argument('--labels',type=Path,required=True)
+    s.add_argument('--label-qc',type=Path,required=True)
+    s.add_argument('--v2-dir',type=Path,required=True)
+    s.add_argument('--gfid',type=Path,required=True)
+    s.add_argument('--gfid-duplicates',type=Path)
+    s.add_argument('--world',type=Path)
+    s.add_argument('--physical',type=Path,help='independently reviewed observational positives CSV')
+    s.add_argument('--reviewer-table',type=Path,help='completed manual news annotation CSV')
+    s.add_argument('--review-n',type=int,default=600)
+    s.add_argument('--tag',default='fig1_v3')
+    s.add_argument('--fast',action='store_true',help='1k grid-day GFID matching SMOKE ONLY; never publish')
     s=commands.add_parser('baseline',help='M0-M2 NEWS-REPORT proxy only, dual city+storm holdouts')
     s.add_argument('--panel',type=Path,required=True)
     s.add_argument('--seed',type=int,default=42)
@@ -72,6 +85,13 @@ def main(argv=None):
     elif args.command=='baseline':
         from .train import run
         result=run(root,args.panel,args.seed)
+    elif args.command=='fig1-v3':
+        from .fig1_v3 import build
+        result=build(root,args.labels,args.grid,args.label_qc,args.v2_dir,
+                     args.gfid,duplicates=args.gfid_duplicates,
+                     physical=args.physical,tag=args.tag,
+                     world=args.world,reviewer_table=args.reviewer_table,
+                     review_n=args.review_n,fast=args.fast)
     elif args.command=='fig1':
         from .fig1 import build
         result=build(root,args.grid,args.labels,args.label_qc,args.ucdb,
