@@ -359,6 +359,20 @@ def build(root,grid_path,labels_path,qc_path,ucdb,tag="fig1_v1",
     loc["n_report_years"]=loc.n_report_years.fillna(0).astype(int)
     loc["eligible"]=(loc.n_high_reports>=city_min_reports)&(loc.n_report_years>=city_min_years)
     loc=stable_city_split(loc)
+    # Retain every primary mapped UUID, including cells outside the official
+    # UCDB reference: do not silently discard the 2020 GF10 / UCDB mismatch.
+    geo=primary.merge(dom,on="grid_id",how="left",validate="many_to_one")
+    geo=geo.merge(loc[["city_id","continent","country","koppen_broad"]],
+                  on="city_id",how="left",validate="many_to_one")
+    geo["continent"]=geo.continent.fillna("Not assigned to UCDB")
+    geo["country"]=geo.country.fillna("Not assigned to UCDB")
+    geo["year"]=geo.date.dt.year
+    region_quality=(geo.groupby(["continent","geocode_quality"],dropna=False)
+                    .agg(report_uuids=("event_id","nunique"),
+                         distinct_grid_cells=("grid_id","nunique"),
+                         assigned_ucdb_cities=("city_id","nunique")).reset_index())
+    regional_year=(geo.groupby(["continent","year","geocode_quality"],dropna=False)
+                   .agg(report_uuids=("event_id","nunique")).reset_index())
     city_strata=(loc.groupby(["continent","koppen_broad"],dropna=False)
                 .agg(official_ucdb_cities=("city_id","size"),
                      eligible_cities=("eligible","sum")).reset_index())
@@ -393,6 +407,8 @@ def build(root,grid_path,labels_path,qc_path,ucdb,tag="fig1_v1",
     out.mkdir(parents=True,exist_ok=False)
     annual.to_csv(out/"fig1_annual_quality.csv",index=False)
     city_strata.to_csv(out/"fig1_city_strata.csv",index=False)
+    region_quality.to_csv(out/"fig1_regional_geocode_quality.csv",index=False)
+    regional_year.to_csv(out/"fig1_regional_annual_quality.csv",index=False)
     loc.to_csv(out/"fig1_ucdb_city_sample_audit.csv",index=False)
     dom.to_parquet(out/"fig1_grid_dominant_ucdb.parquet",index=False)
     gd.to_parquet(out/"fig1_grid_day_by_quality.parquet",index=False)
