@@ -127,8 +127,14 @@ def annotate_summary(completed):
         c[col]=c[col].astype(str).str.upper().str.strip()
         if not c[col].isin(["YES","NO",""]).all():
             raise ValueError("Review answer must be YES/NO/blank: "+col)
+    if "reviewer_id" not in c or "evidence_source_uri" not in c:
+        raise ValueError("Manual review must identify reviewer and evidence source")
+    reviewer=c.reviewer_id.fillna("").astype(str).str.strip().ne("")
+    evidence=c.evidence_source_uri.fillna("").astype(str).str.strip().ne("")
     reviewed=c[(c.location_verified.ne(""))&(c.date_verified.ne(""))&
-               (c.independent_of_groundsource.eq("YES"))].copy()
+               (c.flood_occurrence_verified.ne(""))&
+               (c.independent_of_groundsource.eq("YES"))&
+               reviewer&evidence].copy()
     if reviewed.empty:return {"reviewed_independent_rows":0,"status":"NOT_YET_VALIDATED"}
     weight=1/reviewed.inclusion_probability.astype(float)
     def w_rate(col):
