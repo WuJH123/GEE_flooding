@@ -140,7 +140,8 @@ def potential_duplicate_audit(path,full_gfid_audit):
     import re
     table=pd.read_csv(path,low_memory=False)
     norm={re.sub(r"[^a-z0-9]","",str(c).lower()):c for c in table}
-    candidates=[norm[k] for k in ("eventid","id","gfidid","recordid") if k in norm]
+    # Official USGS potential-duplicate file uses GFID_Event_ID; older exports may use Event_ID.
+    candidates=[norm[k] for k in ("gfideventid","eventid","gfidid","recordid","id") if k in norm]
     known=set(full_gfid_audit.event_id.dropna().astype(str))
     attempted=[]
     selected=None
