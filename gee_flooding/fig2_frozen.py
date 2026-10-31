@@ -89,13 +89,19 @@ def freeze(panel, city_audit, weather_contract):
 
 def prospective_splits(df):
     """Pre-registered temporal and city transfer; never use 2024-25 to select cities."""
-    train=(df.year.isin(PERIOD_TRAIN)&df.fig1_v3_status.eq("TRAIN_CANDIDATE"))
+    # ±7-day chronological embargo around the development/test boundary
+    # protects against adjacent-year IMERG components split by annual processing.
+    # This is additional to shared storm-ID embargo, NOT a replacement for it.
+    train=(df.year.isin(PERIOD_TRAIN)&df.fig1_v3_status.eq("TRAIN_CANDIDATE")
+           & df.date.le(pd.Timestamp("2023-12-24")))
+    future=(df.year.isin(PERIOD_TEST)&df.date.ge(pd.Timestamp("2024-01-08")))
     evals={
-        "prospective_2024_2025_seen_city": (df.year.isin(PERIOD_TEST)
+        "prospective_2024_2025_seen_city": (future
                                           & df.fig1_v3_status.eq("TRAIN_CANDIDATE")),
-        "prospective_2024_2025_new_city": (df.year.isin(PERIOD_TEST)
+        "prospective_2024_2025_new_city": (future
                                          & df.fig1_v3_status.eq("HELDOUT_CITY_CANDIDATE")),
         "cross_city_2021_2023": (df.year.isin(PERIOD_TRAIN)
+                                & df.date.le(pd.Timestamp("2023-12-24"))
                                 & df.fig1_v3_status.eq("HELDOUT_CITY_CANDIDATE")),
     }
     train_ids=np.flatnonzero(train.to_numpy())
@@ -236,6 +242,7 @@ def run(root,panel,city_audit,contract,tag="fig2_frozen_2021_2025",
       "development_years":list(PERIOD_TRAIN),"evaluation_years":list(PERIOD_TEST),
       "city_assignment":"Figure1 v3 2021-23-only eligible city status",
       "meteorological_event_embargo":True,
+      "time_boundary_embargo_days":7,
       "all_transformations_training_only":True,
       "train_only_algorithms":list(algorithms),
       "n_panel_rows":len(df),"n_cities":int(df.city_id.nunique()),
