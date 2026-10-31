@@ -79,6 +79,8 @@ def parser():
     s.add_argument('--tag',default='fig1_pilot_r1')
     s.add_argument('--n',type=int,default=24)
     s.add_argument('--seed',type=int,default=42)
+    s.add_argument('--paired-controls',action='store_true',
+                   help='same-grid season nearby no-news dates are UNLABELED, not dry negatives')
     s=commands.add_parser('fig1-gee-pilot',help='Dry-run by default; optional bounded 12-row EE table export')
     s.add_argument('--project',required=True)
     s.add_argument('--manifest',type=Path,required=True)
@@ -160,7 +162,8 @@ def main(argv=None):
                        args.v3_qc,args.crosswalk,args.tag)
     elif args.command=='fig1-prepare-weather-pilot':
         from .fig1_gee_pilot import prepare
-        result=prepare(root,args.tiers,args.grid,args.tag,args.n,args.seed)
+        result=prepare(root,args.tiers,args.grid,args.tag,args.n,args.seed,
+                       paired_controls=args.paired_controls)
     elif args.command=='fig1-gee-pilot':
         from .fig1_gee_pilot import run_gee
         result=run_gee(args.project,args.manifest,args.description,
