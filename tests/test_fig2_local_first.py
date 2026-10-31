@@ -80,7 +80,8 @@ def test_local_first_reconciles_and_refuses_same_source_conflicts(tmp_path):
                   "built_fraction_2020":[.5,np.nan],
                   "hand_m":[3.,4.]}).to_parquet(local,index=False)
     (folder/"fig2_local_exact_qc.json").write_text(json.dumps({
-        "method":"exactextract_native_pixel_fraction_weighted"}))
+        "method":"exactextract_native_pixel_fraction_weighted",
+        "grid_crs":"EPSG:6933"}))
     gee=tmp_path/"static"
     gee.mkdir()
     pd.DataFrame({"grid_id":["0_0","1_0"],
@@ -172,3 +173,53 @@ def test_only_requested_gee_bands_and_mismatched_duplicate_rows(tmp_path):
         folder/"f2_static_2021_000000_000000_bccc.csv",index=False)
     with pytest.raises(ValueError,match="Conflicting"):
         combine._load_gee(folder,"f2_static_")
+
+
+def test_shapely_fallback_equal_area_matches_exactextract(tmp_path):
+    from gee_flooding import fig2_local_exact as exact
+    g=gf10(tmp_path)
+    a=np.concatenate([np.full((100,100),5000,dtype="float32"),
+                      np.full((100,100),2000,dtype="float32")],axis=1)
+    p=raster(tmp_path/"GHS_BUILT_S_2020.tif",a)
+    spec=tmp_path/"sources.json"
+    spec.write_text(json.dumps({"variables":[{
+        "name":"built_fraction_2020","dataset":"GHSL_BUILT_S_R2023A",
+        "epoch":"2020","kind":"cell_sum","native_units":"m2_per_native_pixel",
+        "paths":[str(p)]}]}),encoding="utf-8")
+    qc=exact.extract(tmp_path,g,spec,tag="fig2_shapely_qa",count=2,
+                     backend="shapely")
+    assert qc["method"]=="shapely_native_pixel_fraction_weighted"
+    df=pd.read_parquet(tmp_path/"data"/"derived"/"fig2_shapely_qa"/"fig2_local_GF10_indicators.parquet")
+    assert df.built_fraction_2020.tolist()==pytest.approx([.5,.2],abs=.0001)
+    assert df.coverage_built_fraction_2020.min()>.999
+    # same frozen input, independent exactextract implementation
+    other=exact.extract(tmp_path,g,spec,tag="fig2_cpp_qa",count=2,
+                        backend="exactextract")
+    d2=pd.read_parquet(tmp_path/"data"/"derived"/"fig2_cpp_qa"/"fig2_local_GF10_indicators.parquet")
+    assert df.built_fraction_2020.tolist()==pytest.approx(
+        d2.built_fraction_2020.tolist(),abs=.0001)
+
+
+def test_missing_GEE_task_planner_respects_original_ids_and_source_groups(tmp_path):
+    from gee_flooding import fig2_backfill_plan
+    g=gf10(tmp_path)
+    p=tmp_path/"merged.parquet"
+    pd.DataFrame({"grid_id":["0_0","1_0"],
+                  "built_fraction_2020":[.5,np.nan],
+                  "hand_m":[np.nan,np.nan],
+                  "population_count_2020":[np.nan,np.nan]}).to_parquet(p,index=False)
+    qc=fig2_backfill_plan.plan(tmp_path,g,p,tag="fig2_missing_task_fixture",
+                              max_cells=1)
+    assert qc["n_planned_jobs"]>=3
+    assert qc["remote_submissions"]==0
+    out=tmp_path/"data"/"reference"/"fig2_missing_task_fixture"
+    tasks=pd.read_csv(out/"fig2_gee_backfill_tasks.csv")
+    assert tasks.n_grid.max()==1
+    assert set(tasks.source_family)=={"merit","landcover","builtform","population"}
+    assert tasks.loc[tasks.bands.eq("built_fraction_2020"),"n_grid"].sum()==1
+    for row in tasks.itertuples(index=False):
+        src=pd.read_parquet(out/row.grid_file)
+        assert len(src)==row.n_grid
+        assert set(src.grid_id)<=set(pd.read_parquet(g).grid_id)
+    with pytest.raises(FileExistsError):
+        fig2_backfill_plan.plan(tmp_path,g,p,tag="fig2_missing_task_fixture")
