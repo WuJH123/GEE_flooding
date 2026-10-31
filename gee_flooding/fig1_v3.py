@@ -58,8 +58,9 @@ def draw_v3(root,city,grid,high,all_labels,gfid_rows,sensitivity,validation,out)
     plt.rcParams.update({"font.size":9,"font.family":"DejaVu Sans","pdf.fonttype":42,
                          "svg.fonttype":"none","axes.spines.right":False,
                          "axes.spines.top":False})
-    fig=plt.figure(figsize=(18,11.2),layout="constrained")
-    gs=fig.add_gridspec(2,3,height_ratios=[1,1],width_ratios=[1.28,1,1])
+    fig=plt.figure(figsize=(18,11.5),layout="constrained")
+    # Reserve a dedicated footer row. fig.text(y=.003) used to collide with bottom-axis labels.
+    gs=fig.add_gridspec(3,3,height_ratios=[1,1,.065],width_ratios=[1.28,1,1])
     a=fig.add_subplot(gs[0,0]);b=fig.add_subplot(gs[0,1]);c=fig.add_subplot(gs[0,2])
     d=fig.add_subplot(gs[1,0]);e=fig.add_subplot(gs[1,1]);f=fig.add_subplot(gs[1,2])
 
@@ -142,11 +143,14 @@ def draw_v3(root,city,grid,high,all_labels,gfid_rows,sensitivity,validation,out)
     f.grid(axis="x",alpha=.12)
     fig.suptitle("Figure 1 v3 | Urban flood-report coverage and observational reliability",
                  fontsize=16,fontweight="bold")
-    fig.text(.5,.003,
-             "GFID: candidate catalogue overlap, not inundation truth. "
-             "No report is not a verified non-flood. "
-             f"Independent physical evidence: {validation.get('status','PENDING')}.",
-             ha="center",fontsize=9)
+    footer=fig.add_subplot(gs[2,:])
+    footer.set_axis_off()
+    footer.text(.5,.50,
+                "GFID proximity is catalogue agreement, not inundation truth; "
+                "absence of reports is not confirmed absence of flooding.\n"
+                f"Physical evidence status: {validation.get('status','PENDING')}.",
+                ha="center",va="center",fontsize=8.5,
+                transform=footer.transAxes,clip_on=True)
     for ext in ("png","pdf","svg"):
         fig.savefig(out/f"Figure1_GEE_v3.{ext}",
                     dpi=300 if ext=="png" else None,bbox_inches="tight")
