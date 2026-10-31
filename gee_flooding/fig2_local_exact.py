@@ -198,7 +198,8 @@ def extract(root,grid_path,manifest,tag="fig2_local_exact_v1",
         raise ValueError("Duplicate indicator declarations")
     for item in variables:validate_variable(item)
     try:
-        from exactextract import exact_extract, RasterioRasterSource
+        from exactextract import exact_extract
+        from exactextract.raster import RasterioRasterSource
     except ImportError as exc:
         raise RuntimeError('Install local extraction dependencies: pip install ".[local]"') from exc
     import rasterio
