@@ -23,6 +23,7 @@ EXPOSURE={"population_count_2020","built_area_km2_2020",
 CONTEXT={"built_fraction_2000"}
 VALID=set(catalog().name)|CONTEXT
 FRACTIONS={name for name in VALID if name.endswith("_fraction")
+           or "_fraction_" in name
            or name in {"built_neighbor_density","built_fragmentation"}}
 NONNEG={"hand_m","upstream_area_km2","population_count_2020",
         "built_area_km2_2020","built_nres_area_km2_2020",
