@@ -120,9 +120,13 @@ def assemble(root,grid,tag,local=None,gee_static=None,gee_exposure=None,
         if not audit.is_file():
             raise ValueError("Only audited fig2_local_exact outputs can enter local-first merge")
         metadata=json.loads(audit.read_text(encoding="utf-8"))
-        if metadata.get("method")!="exactextract_native_pixel_fraction_weighted":
-            raise ValueError("Local exactextract provenance contract missing")
-        sources.append(("LOCAL_EXACT",source_frame(pd.read_parquet(local),domain,"LOCAL_EXACT")))
+        methods={"exactextract_native_pixel_fraction_weighted":"LOCAL_EXACT",
+                 "shapely_native_pixel_fraction_weighted":"LOCAL_SHAPELY_EQUAL_AREA"}
+        method=metadata.get("method")
+        if method not in methods or metadata.get("grid_crs")!="EPSG:6933":
+            raise ValueError("Local extraction must have accepted method and frozen GF10 CRS")
+        sources.append((methods[method],
+                        source_frame(pd.read_parquet(local),domain,methods[method])))
     if gee_static:
         sources.append(("GEE_STATIC",source_frame(
             _load_gee(gee_static,"f2_static_"),domain,"GEE_STATIC")))
