@@ -216,7 +216,8 @@ def test_missing_GEE_task_planner_respects_original_ids_and_source_groups(tmp_pa
     tasks=pd.read_csv(out/"fig2_gee_backfill_tasks.csv")
     assert tasks.n_grid.max()==1
     assert set(tasks.source_family)=={"merit","landcover","builtform","population"}
-    assert tasks.loc[tasks.bands.eq("built_fraction_2020"),"n_grid"].sum()==1
+    assert tasks.loc[tasks.bands.str.split(",").apply(
+        lambda bands:"built_fraction_2020" in bands),"n_grid"].sum()==1
     for row in tasks.itertuples(index=False):
         src=pd.read_parquet(out/row.grid_file)
         assert len(src)==row.n_grid
