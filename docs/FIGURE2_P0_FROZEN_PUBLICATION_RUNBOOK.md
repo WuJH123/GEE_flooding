@@ -65,10 +65,10 @@ If git has uncommitted changes, review before pull; never hard reset. If the Fig
 
     $G="$ROOT\data\reference\grid10_urban_2020.parquet"
     $F1="$ROOT\outputs\fig1_v2"
-    & $PY -m gee_flooding.fig2_sampling --root $ROOT --grid $G --crosswalk "$F1\fig1_grid_dominant_ucdb.parquet" --cities "$F1\fig1_ucdb_city_sample_audit.csv" --max-cities 40 --cells-per-city 12 --seed 42 --tag fig2_subset_v3
+    & $PY -m gee_flooding.fig2_sampling --root $ROOT --grid $G --crosswalk "$F1\fig1_grid_dominant_ucdb.parquet" --cities "$F1\fig1_ucdb_city_sample_audit.csv" --city-audit-v3 "$ROOT\outputs\fig1_v3_full_r2\ucdb_city_development_holdout.csv" --max-cities 40 --cells-per-city 12 --seed 42 --tag fig2_subset_v3
     $G2="$ROOT\data\reference\fig2_subset_v3\fig2_GF10_selected_grid.parquet"
 
-This aims for around 480 cells in 40 official cities, subject to actual coverage. It is a PILOT, not globally representative real flood inference.
+This aims for around 480 cells in frozen Figure1-v3 development-eligible TRAIN and HELDOUT candidate cities. Eligibility uses 2021–2023 news only; 2024–2025 outcomes are excluded from sampling. The pilot is NOT a global probability sample.
 
 ## Windows 2 — dry-run bounded GEE table exports; submit only one controlled pilot
 
