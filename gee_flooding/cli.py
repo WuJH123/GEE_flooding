@@ -54,6 +54,30 @@ def parser():
     s.add_argument('--review-n',type=int,default=600)
     s.add_argument('--tag',default='fig1_v3')
     s.add_argument('--fast',action='store_true',help='1k grid-day GFID matching SMOKE ONLY; never publish')
+    s=commands.add_parser('fig1-ucdb-population',help='Inspect official UCDB fields or export explicitly verified 2020 population')
+    s.add_argument('--ucdb',type=Path,required=True)
+    s.add_argument('--layer',default='GHS_UCDB_THEME_GENERAL_CHARACTERISTICS_GLOBE_R2024A')
+    s.add_argument('--population-field',default=None)
+    s.add_argument('--tag',default='fig1_publication_v1')
+    s=commands.add_parser('fig1-spatial-frame',help='Frozen GF10 core + verified adjacent raster periphery, NO DOWNLOAD')
+    s.add_argument('--core',type=Path,required=True)
+    s.add_argument('--west',type=Path,required=True)
+    s.add_argument('--east',type=Path,required=True)
+    s.add_argument('--tag',default='fig1_publication_v1')
+    s=commands.add_parser('fig1-tier-audit',help='Raw Groundsource UUID -> A/B/C proxy tiers and candidate observation units')
+    s.add_argument('--raw',type=Path,required=True)
+    s.add_argument('--primary',type=Path,required=True)
+    s.add_argument('--tag',default='fig1_publication_v1')
+    s=commands.add_parser('fig1-paper',help='Five-panel paper draft: requires audited frozen inputs and honest evidence gate')
+    s.add_argument('--tag',default='fig1_publication_v1')
+    s.add_argument('--spatial-dir',type=Path,required=True)
+    s.add_argument('--tier-dir',type=Path,required=True)
+    s.add_argument('--city-file',type=Path,required=True)
+    s.add_argument('--crosswalk',type=Path,required=True)
+    s.add_argument('--v3-qc',type=Path,required=True)
+    s.add_argument('--physical-reviewed',type=Path)
+    s.add_argument('--city-population',type=Path)
+    s.add_argument('--independent-storm-manifest',type=Path)
     s=commands.add_parser('baseline',help='M0-M2 NEWS-REPORT proxy only, dual city+storm holdouts')
     s.add_argument('--panel',type=Path,required=True)
     s.add_argument('--seed',type=int,default=42)
@@ -92,6 +116,21 @@ def main(argv=None):
                      physical=args.physical,tag=args.tag,
                      world=args.world,reviewer_table=args.reviewer_table,
                      review_n=args.review_n,fast=args.fast)
+    elif args.command=='fig1-ucdb-population':
+        from .fig1_ucdb_population import inspect
+        result=inspect(root,args.ucdb,args.layer,args.population_field,args.tag)
+    elif args.command=='fig1-spatial-frame':
+        from .fig1_spatial import freeze_periphery
+        result=freeze_periphery(root,args.core,args.west,args.east,args.tag)
+    elif args.command=='fig1-tier-audit':
+        from .fig1_tiers import build_labels_release
+        result=build_labels_release(root,args.raw,args.primary,args.tag)
+    elif args.command=='fig1-paper':
+        from .fig1_publication import run
+        result=run(root,args.tag,args.spatial_dir,args.tier_dir,
+                   args.city_file,args.crosswalk,args.v3_qc,
+                   physical_file=args.physical_reviewed,
+                   city_population=args.city_population,storms=args.independent_storm_manifest)
     elif args.command=='fig1':
         from .fig1 import build
         result=build(root,args.grid,args.labels,args.label_qc,args.ucdb,
