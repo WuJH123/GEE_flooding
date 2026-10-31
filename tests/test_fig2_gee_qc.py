@@ -124,3 +124,34 @@ def test_nonresidential_area_is_subset_of_local_total(tmp_path):
     bad=fig2_gee_qc.check_nres_never_exceeds_total(local,p)
     assert bad["status"]=="FAILED_NRES_SUBSET_TOTAL"
     assert bad["n_violations"]==1
+
+
+def test_bounded_submission_requires_confirmation_and_ledger_resume(tmp_path,monkeypatch):
+    from gee_flooding import fig2_gee_submit
+    plan,_=fixture(tmp_path)
+    with pytest.raises(ValueError,match="at most|At most"):
+        fig2_gee_submit.dispatch(tmp_path,plan,"merit",max_tasks=5)
+    with pytest.raises(ValueError,match="requires"):
+        fig2_gee_submit.dispatch(tmp_path,plan,"merit",max_tasks=1,
+                                 submit=True,project="project")
+    calls=[]
+    def fake_launch(grid,start,count,mode,day,folder,submit=False,
+                    project=None,bands=None):
+        calls.append(dict(grid=str(grid),submit=submit,project=project))
+        return dict(task_submitted=submit,
+                    status="SUBMITTED_NOT_COMPLETE" if submit else "DRY_RUN",
+                    task_id="T"+str(len(calls)) if submit else None,
+                    description="fixture_"+str(len(calls)))
+    monkeypatch.setattr(fig2_gee_submit,"launch",fake_launch)
+    dry=fig2_gee_submit.dispatch(tmp_path,plan,"merit",max_tasks=1)
+    assert dry["status"]=="DRY_RUN"
+    assert not (plan/"fig2_gee_submission_ledger.jsonl").exists()
+    ok=fig2_gee_submit.dispatch(tmp_path,plan,"merit",project="project",
+                                max_tasks=1,submit=True,confirm="SUBMIT")
+    assert ok["submitted_now"]==1
+    rec=json.loads((plan/"fig2_gee_submission_ledger.jsonl").read_text().strip())
+    assert rec["submitted"] is True
+    again=fig2_gee_submit.dispatch(tmp_path,plan,"merit",project="project",
+                                   max_tasks=1,submit=True,confirm="SUBMIT")
+    assert again["submitted_now"]==0
+    assert again["status"]=="NO_UNSUBMITTED_JOBS_IN_REQUESTED_FAMILY"
