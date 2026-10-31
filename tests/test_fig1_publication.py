@@ -140,6 +140,12 @@ def test_five_panel_paper_release_draft_and_fail_closed_gates(tmp_path):
         "gfid_audit":{"raw_rows":136642,"accepted_rows":79277},
         "sensitivity_is_full_data":True
     }),encoding="utf-8")
+    pd.DataFrame([
+        {"family":family,"radius_km":75,"day_window":7,
+         "control":mode,"candidate_grid_days":n}
+        for family,n in [("DFO",10),("DESINVENTAR",13),("EMDAT",8),("HANZE",6)]
+        for mode in ["OBSERVED","SHIFT_NEWS_183_DAYS"]]).to_csv(
+            tmp_path/"gfid_candidate_sensitivity.csv",index=False)
     output=run(tmp_path,"fig1_publication_synthetic",framepath,tierspath,
                tmp_path/"cities.csv",tmp_path/"cross.parquet",tmp_path/"v3.json")
     assert output["raw_report_uuids"]==4
