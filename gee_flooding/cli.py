@@ -58,6 +58,13 @@ def parser():
     s.add_argument('--queue',type=Path,required=True)
     s.add_argument('--reviews',type=Path,required=True)
     s.add_argument('--tag',default='fig1_review_r1')
+    s=commands.add_parser('fig1-gfd-probe',help='One known GFD event and one original GF10 cell; dry-run by default')
+    s.add_argument('--project',required=True)
+    s.add_argument('--grid',type=Path,required=True)
+    s.add_argument('--grid-id',required=True)
+    s.add_argument('--gfd-event-id',type=int,required=True)
+    s.add_argument('--description',default='FIG1_GFD_VERIFIED_WATER_PILOT')
+    s.add_argument('--submit',action='store_true')
     s=commands.add_parser('fig1-preflight',help='P0 metadata and source-ledger validation, no downloads')
     s.add_argument('--raw',type=Path,required=True)
     s.add_argument('--mapped',type=Path,required=True)
@@ -143,6 +150,10 @@ def main(argv=None):
     elif args.command=='fig1-review-audit':
         from .fig1_review import summarize
         result=summarize(root,args.queue,args.reviews,args.tag)
+    elif args.command=='fig1-gfd-probe':
+        from .fig1_gfd_probe import gfd_probe
+        result=gfd_probe(args.project,args.grid,args.grid_id,args.gfd_event_id,
+                         args.submit,args.description)
     elif args.command=='fig1-preflight':
         from .fig1_preflight import inspect
         result=inspect(root,args.raw,args.mapped,args.grid,args.city_file,
