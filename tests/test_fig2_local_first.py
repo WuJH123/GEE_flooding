@@ -1,0 +1,137 @@
+import json
+import numpy as np
+import pandas as pd
+import pytest
+import rasterio
+from rasterio.transform import from_origin
+from gee_flooding import fig2_local_first as triage
+from gee_flooding import fig2_local_exact as exact
+from gee_flooding import fig2_indicators as combine
+
+
+def raster(path,values):
+    with rasterio.open(path,"w",driver="GTiff",width=values.shape[1],
+         height=values.shape[0],count=1,dtype=str(values.dtype),
+         crs="EPSG:6933",transform=from_origin(0,10000,100,100),
+         nodata=-9999) as d:
+        d.write(values,1)
+    return path
+
+
+def gf10(tmp_path):
+    g=tmp_path/"GF10.parquet"
+    pd.DataFrame({"grid_id":["0_0","1_0"],"grid_x":[0,1],
+                  "grid_y":[0,0],"urban_fraction_2020":[.3,.7]}).to_parquet(g,index=False)
+    return g
+
+
+def test_local_inventory_without_io_global(tmp_path):
+    t=raster(tmp_path/"GHS_BUILT_S_E2020.tif",np.ones((100,200),dtype="float32"))
+    index=tmp_path/"dataset_inventory_20261031.csv"
+    pd.DataFrame({"full_path":[str(t),str(tmp_path/"CN_Floods_2020.zip")]}).to_csv(index,index=False)
+    q=triage.triage(index,tmp_path,tag="fig2_triage_test")
+    assert q["source_raster_values_read"] is False
+    assert q["local_files_modified"]==0
+    assert q["matched_candidates"]>=1
+    candidates=pd.read_csv(tmp_path/"reports"/"fig2_triage_test"/"fig2_local_candidates.csv")
+    assert "ghsl_built_s_2020" in set(candidates.family)
+    assert candidates.loc[candidates.family.eq("ghsl_built_s_2020"),"crs"].str.contains("6933").all()
+    with pytest.raises(FileExistsError):
+        triage.triage(index,tmp_path,tag="fig2_triage_test")
+
+
+def test_manifest_rejects_wrong_units_and_archive(tmp_path):
+    path=tmp_path/"BUILT_S.tif"
+    path.touch()
+    good={"name":"built_fraction_2020","dataset":"GHSL_BUILT_S_R2023A",
+          "epoch":"2020","kind":"cell_sum","native_units":"m2_per_native_pixel",
+          "paths":[str(path)]}
+    exact.validate_variable(good)
+    with pytest.raises(ValueError,match="must be source m2"):
+        exact.validate_variable({**good,"native_units":"percentage"})
+    with pytest.raises(ValueError,match="archiv"):
+        exact.validate_variable({**good,"paths":[str(tmp_path/"A.zip")]})
+    with pytest.raises(ValueError,match="class codes"):
+        exact.validate_variable({"name":"tree_fraction","dataset":"ESA_WORLDCOVER_V200",
+                 "epoch":"2021","kind":"class_fraction","classes":[1],
+                 "paths":[str(path)]})
+
+
+def test_tile_combine_missing_and_overlapping_10km_cells():
+    grids=pd.DataFrame({"grid_id":["0_0","1_0"]})
+    good={"data":pd.DataFrame({"grid_id":["0_0","1_0"],
+                        "count":[10000.,5000.],
+                        "sum":[50e6,25e6],"mean":[5000.,5000.]}),
+          "pixel_area":10000}
+    out=exact.combine_contributions([good],grids,"built_fraction_2020","cell_sum")
+    assert out.loc[0,"built_fraction_2020"]==pytest.approx(.5)
+    assert pd.isna(out.loc[1,"built_fraction_2020"])
+    assert out.loc[1,"coverage_built_fraction_2020"]==pytest.approx(.5)
+    with pytest.raises(ValueError,match="overlapping"):
+        exact.combine_contributions([good,good],grids,"built_fraction_2020","cell_sum")
+
+
+def test_local_first_reconciles_and_refuses_same_source_conflicts(tmp_path):
+    g=gf10(tmp_path)
+    folder=tmp_path/"data"/"derived"/"fig2_local_test"
+    folder.mkdir(parents=True)
+    local=folder/"fig2_local_GF10_indicators.parquet"
+    pd.DataFrame({"grid_id":["0_0","1_0"],
+                  "built_fraction_2020":[.5,np.nan],
+                  "hand_m":[3.,4.]}).to_parquet(local,index=False)
+    (folder/"fig2_local_exact_qc.json").write_text(json.dumps({
+        "method":"exactextract_native_pixel_fraction_weighted"}))
+    gee=tmp_path/"static"
+    gee.mkdir()
+    pd.DataFrame({"grid_id":["0_0","1_0"],
+                  "built_fraction_2020":[.9,.7],
+                  "vegetation_fraction":[.2,.6]}).to_csv(gee/"f2_static_2021_000000_000001.csv",index=False)
+    qc=combine.assemble(tmp_path,g,"fig2_merged_fixture",local=local,gee_static=gee)
+    assert qc["n_conflicts"]==1
+    out=pd.read_parquet(tmp_path/"data"/"derived"/"fig2_merged_fixture"/"fig2_GF10_resilience_indicators.parquet")
+    assert out.loc[out.grid_id.eq("0_0"),"built_fraction_2020"].iloc[0]==pytest.approx(.5)
+    assert out.loc[out.grid_id.eq("1_0"),"built_fraction_2020"].iloc[0]==pytest.approx(.7)
+    assert qc["publication_ready"] is False
+    assert (tmp_path/"data"/"derived"/"fig2_merged_fixture"/"fig2_gee_missing_indicator_plan.csv").exists()
+    with pytest.raises(FileExistsError):
+        combine.assemble(tmp_path,g,"fig2_merged_fixture",local=local,gee_static=gee)
+
+
+def test_true_native_pixel_exact_ghsl_area(tmp_path):
+    pytest.importorskip("exactextract")
+    g=gf10(tmp_path)
+    arr=np.concatenate([np.full((100,100),5000,dtype="float32"),
+                        np.full((100,100),2000,dtype="float32")],axis=1)
+    path=raster(tmp_path/"GHS_BUILT_S_E2020.tif",arr)
+    manifest=tmp_path/"manifest.json"
+    manifest.write_text(json.dumps({"variables":[
+        {"name":"built_fraction_2020","dataset":"GHSL_BUILT_S_R2023A",
+         "epoch":"2020","kind":"cell_sum","native_units":"m2_per_native_pixel",
+         "paths":[str(path)],"band":1},
+        {"name":"built_area_km2_2020","dataset":"GHSL_BUILT_S_R2023A",
+         "epoch":"2020","kind":"cell_sum","native_units":"m2_per_native_pixel",
+         "paths":[str(path)],"band":1},
+    ]}),encoding="utf-8")
+    qc=exact.extract(tmp_path,g,manifest,tag="fig2_exact_fixture",count=2)
+    out=pd.read_parquet(tmp_path/"data"/"derived"/"fig2_exact_fixture"/"fig2_local_GF10_indicators.parquet")
+    assert qc["grid_cell_count"]==2
+    assert out.built_fraction_2020.tolist()==pytest.approx([.5,.2],rel=.0001)
+    assert out.built_area_km2_2020.tolist()==pytest.approx([50,20],rel=.0001)
+    assert out.coverage_built_fraction_2020.min()>0.999
+
+
+def test_categorical_pixel_fractions_use_original_class_values(tmp_path):
+    pytest.importorskip("exactextract")
+    g=gf10(tmp_path)
+    vals=np.full((100,200),80,dtype="int16")
+    vals[:,:50]=10  # one quarter tree, remainder water, in first GF10
+    path=raster(tmp_path/"WorldCover_2021_v200.tif",vals)
+    manifest=tmp_path/"manifest.json"
+    manifest.write_text(json.dumps({"variables":[
+       {"name":"tree_fraction","dataset":"ESA_WORLDCOVER_V200",
+        "epoch":"2021","kind":"class_fraction","classes":[10],
+        "paths":[str(path)]}
+    ]}),encoding="utf-8")
+    exact.extract(tmp_path,g,manifest,tag="fig2_cover_fixture",count=2)
+    df=pd.read_parquet(tmp_path/"data"/"derived"/"fig2_cover_fixture"/"fig2_local_GF10_indicators.parquet")
+    assert df.tree_fraction.tolist()==pytest.approx([.5,0.0],abs=.001)
