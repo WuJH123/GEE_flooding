@@ -80,3 +80,31 @@ def test_label_review_disagreement_blocks_population_estimates(tmp_path):
     out=summarize(tmp_path,p/"q.csv",p/"r.csv","review_disagreement")
     assert out["reviewer_disagreements"]==1
     assert out["estimates"]=={}
+
+
+def test_paired_reference_never_becomes_flood_free_negative(tmp_path):
+    inp=tmp_path/"input";inp.mkdir()
+    pd.DataFrame({"grid_id":["1_2","2_2"],"date":["2023-05-10","2023-08-10"],
+           "spatial_temporal_tier":["A","B"]}).to_parquet(inp/"tiers.parquet")
+    pd.DataFrame({"grid_id":["1_2","2_2"],"grid_x":[1,2],"grid_y":[2,2],
+           "longitude":[12.,13.],"latitude":[10.,-10.]}).to_parquet(inp/"grid.parquet")
+    qc=prepare(tmp_path,inp/"tiers.parquet",inp/"grid.parquet",
+               "pilot_pair",n=2,paired_controls=True)
+    assert qc["n_reported_days"]==2
+    assert qc["n_unlabeled_reference_days"]==2
+    result=pd.read_csv(tmp_path/"outputs/pilot_pair/gee/fig1_imerg_pilot_manifest.csv")
+    assert set(result.sample_role)=={"REPORTED_NEWS_DAY","UNLABELED_SAME_GRID_SEASON"}
+    assert result.groupby("pair_id").size().to_dict()=={"F1PAIR_0001":2,"F1PAIR_0002":2}
+    assert result.iloc[0].sample_role=="REPORTED_NEWS_DAY"
+    assert result.iloc[1].sample_role=="UNLABELED_SAME_GRID_SEASON"
+
+
+def test_gfd_probe_requires_real_frozen_grid_and_known_id(tmp_path):
+    from gee_flooding.fig1_gfd_probe import gfd_probe
+    g=tmp_path/"grid.parquet"
+    pd.DataFrame({"grid_id":["1_2"],"grid_x":[1],"grid_y":[2]}).to_parquet(g)
+    dry=gfd_probe("not-connected",g,"1_2",3977,submit=False)
+    assert dry["status"]=="DRY_RUN_NOT_SUBMITTED"
+    assert dry["physical_verification"] is not True if "physical_verification" in dry else True
+    with pytest.raises(ValueError,match="grid_id not found"):
+        gfd_probe("not-connected",g,"2_2",3977,submit=False)
