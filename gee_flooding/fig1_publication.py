@@ -60,19 +60,6 @@ def city_attributes(city,crosswalk,labels,city_pop=None):
     if c.city_id.duplicated().any():raise ValueError("Official UCDB city denominator corrupted")
     return c,strata,report
 
-def physical_support(path,known_cells):
-    """No observed negative; validate independent positive measurements from v3.
-
-    Inputs are previously adjudicated field/SAR/optical evidence, not GFID point
-    coincidences or uninspected CEMS catalogues. Mechanism must be PLUVIAL to
-    make a pluvial claim. Returns only verified positive evidence.
-    """
-    from .fig1_v3_physical import validate_reference
-    d=pd.read_parquet(known_cells)
-    high=d[["grid_id","date"]]
-    # Expects input grid separate: callers provide high plus grid through wrapper.
-    raise RuntimeError("Use summarize_physical with explicit frozen GF10")
-
 def summarize_physical(physical_csv,grid,high_days):
     from .fig1_v3_physical import validate_reference
     reviewed,pluvial,qc=validate_reference(physical_csv,grid,high_days)
@@ -92,7 +79,10 @@ def plot_five_panels(frame,days,tiers,city,physical,external_qc,out,summary):
     fig=plt.figure(figsize=(17.4,10.8),layout="constrained")
     gs=fig.add_gridspec(3,6,height_ratios=[1,1,.08])
     a=fig.add_subplot(gs[0,0:3]);b=fig.add_subplot(gs[0,3:5])
-    c=fig.add_subplot(gs[0,5]);d=fig.add_subplot(gs[1,0:2])
+    cstack=gs[0,5].subgridspec(2,1,height_ratios=[.62,.38])
+    ct=fig.add_subplot(cstack[0,0])
+    c=fig.add_subplot(cstack[1,0])
+    d=fig.add_subplot(gs[1,0:2])
     e=fig.add_subplot(gs[1,2:6]);foot=fig.add_subplot(gs[2,:]);foot.axis("off")
     # a: separate true independent frozen urban/periphery frame from covered cells
     per=frame[frame.domain.eq("PERIPHERY_10KM_RING")]
@@ -123,7 +113,15 @@ def plot_five_panels(frame,days,tiers,city,physical,external_qc,out,summary):
     b.set_title("b  Traceable reports, tiers and candidate observation units",loc="left",weight="bold")
     for i,n in enumerate(vals):b.text(n/1e6+max(vals)/1e6*.015,i,f"{n:,}",va="center",fontsize=7)
     b.set_xlim(0,max(vals)/1e6*1.3)
-    # c: region-specific A/B/C and annual reporting in a compact panel
+    # c: both annual availability and regional A/B/C, never trend of physical floods.
+    annual=(tiers.assign(year=pd.to_datetime(tiers.date).dt.year)
+            .groupby(["year","spatial_temporal_tier"]).size().rename("n").reset_index())
+    for key,color in [("A","#27877A"),("B","#BB9865"),("C","#939FA9")]:
+        v=annual[annual.spatial_temporal_tier.eq(key)]
+        ct.plot(v.year,v.n/1000,lw=1.35,color=color,label=key)
+    ct.set_title("c  Observation quality and annual availability",loc="left",weight="bold")
+    ct.set_ylabel("UUIDs (000s)",fontsize=7);ct.legend(frameon=False,fontsize=6,ncol=3)
+    ct.tick_params(labelsize=7);ct.grid(alpha=.1)
     cityq=(city.groupby("continent")[["A_count","B_count","C_count"]].sum())
     cityq=cityq.drop(index="Unknown",errors="ignore")
     cityq=cityq.loc[cityq.sum(axis=1).sort_values().index]
@@ -136,7 +134,7 @@ def plot_five_panels(frame,days,tiers,city,physical,external_qc,out,summary):
             bottom+=val
         c.set(yticks=yy,yticklabels=cityq.index.tolist(),xlabel="Tier share (%)",xlim=(0,100))
         c.legend(fontsize=7,frameon=False,loc="lower right")
-    c.set_title("c  City-linked geocode quality by region",loc="left",weight="bold")
+    c.set_title("ABC among city-linked news (not all reports)",fontsize=7)
     c.grid(axis="x",alpha=.10)
     # d: independent physical observations vs mere GFID catalogue candidates
     d.set_title("d  Independent flood evidence and catalogues",loc="left",weight="bold")
@@ -223,6 +221,16 @@ def run(root,tag,spatial_dir,tier_dir,city_file,crosswalk_file,v3_qc,
     out.mkdir(parents=True,exist_ok=False)
     c.to_csv(out/"official_city_coverage_and_split.csv",index=False)
     strata.to_csv(out/"country_climate_city_size_coverage.csv",index=False)
+    # Separate denominator-based slices avoid mistaking number of reports for
+    # the number of eligible official cities.
+    for dimension in ("country","continent","koppen_broad","population_class"):
+        stat=(c.groupby(dimension,dropna=False)
+              .agg(official_ucdb_cities=("city_id","nunique"),
+                   development_eligible_cities=("eligible_using_only_development_years","sum"),
+                   tier_A_news=("A_count","sum"),tier_B_news=("B_count","sum"),
+                   tier_C_news=("C_count","sum")).reset_index())
+        stat["eligible_city_fraction"]=stat.development_eligible_cities/stat.official_ucdb_cities
+        stat.to_csv(out/f"coverage_by_{dimension}.csv",index=False)
     yr=(tiers.assign(year=pd.to_datetime(tiers.date).dt.year)
         .groupby(["year","spatial_temporal_tier"]).agg(
         report_uuids=("event_id","nunique"),
