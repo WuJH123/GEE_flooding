@@ -214,7 +214,9 @@ def extract(root,grid_path,manifest,tag="fig2_local_exact_v1",
             with rasterio.open(file) as src:
                 if src.crs is None or not src.crs.is_projected:
                     raise ValueError(name+": raster must be in metric projected CRS; reproject locally to suitable equal-area CRS and audit before extracting "+str(file))
-                if src.crs.axis_info and any(x.unit_name.lower() not in ("metre","meter") for x in src.crs.axis_info):
+                from pyproj import CRS
+                axis_info=CRS.from_user_input(src.crs).axis_info
+                if axis_info and any(x.unit_name.lower() not in ("metre","meter") for x in axis_info):
                     raise ValueError(name+": native raster CRS not in meters")
                 if src.transform.b!=0 or src.transform.d!=0:
                     raise ValueError(name+": rotated raster requires audited orthogonal reprojection")
