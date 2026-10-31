@@ -1,0 +1,157 @@
+import json
+import numpy as np
+import pandas as pd
+import pytest
+from gee_flooding import fig2_gee,fig2_gee_qc,fig2_backfill_plan
+
+
+def fixture(tmp_path):
+    grid=tmp_path/"gf10.parquet"
+    pd.DataFrame({"grid_id":["0_0","1_0"],"grid_x":[0,1],"grid_y":[0,0],
+                  "urban_fraction_2020":[.5,.4]}).to_parquet(grid,index=False)
+    joined=tmp_path/"merged.parquet"
+    pd.DataFrame({"grid_id":["0_0","1_0"],
+                  "built_fraction_2020":[.5,.2],
+                  "built_area_km2_2020":[50.,20.]}).to_parquet(joined,index=False)
+    fig2_backfill_plan.plan(tmp_path,grid,joined,tag="fig2_import_plan_test",max_cells=20)
+    return tmp_path/"data"/"reference"/"fig2_import_plan_test",joined
+
+
+def exports(plan,static,exposure):
+    bands={"hand_m":2.5,"slope_deg":1.2,"upstream_area_km2":55.,
+           "vegetation_fraction":.2,"built_neighbor_density":.35,
+           "built_fragmentation":.12,"built_growth_2000_2020":.06,
+           "population_count_2020":5000.,
+           "built_nres_area_km2_2020":15.}
+    tasks=pd.read_csv(plan/"fig2_gee_backfill_tasks.csv")
+    for row in tasks.itertuples(index=False):
+        grid=plan/row.grid_file
+        source=pd.read_parquet(grid)
+        run=fig2_gee.launch(grid,0,row.n_grid,row.mode,None,
+                            "GEE_flooding_Figure2",bands=row.bands)
+        dst=static if row.mode=="static" else exposure
+        data={"grid_id":source.grid_id,
+              "urban_fraction_2020":source.urban_fraction_2020}
+        for b in row.bands.split(","):
+            data[b]=bands[b]
+        pd.DataFrame(data).to_csv(dst/(run["description"]+".csv"),index=False)
+
+
+def test_actual_export_manifest_matching_and_no_silent_missing(tmp_path):
+    plan,local=fixture(tmp_path)
+    static=tmp_path/"static"
+    exp=tmp_path/"exposure"
+    static.mkdir();exp.mkdir()
+    qc=fig2_gee_qc.audit(tmp_path,plan,static,exp,local=local,tag="fig2_audit_missing")
+    assert qc["status"]=="PARTIAL" and qc["n_valid"]==0
+    with pytest.raises(ValueError,match="failed closed"):
+        fig2_gee_qc.audit(tmp_path,plan,static,exp,local=local,
+                          tag="fig2_audit_missing_strict",require_complete=True)
+    exports(plan,static,exp)
+    ok=fig2_gee_qc.audit(tmp_path,plan,static,exp,local=local,
+                          tag="fig2_audit_complete",require_complete=True)
+    assert ok["status"]=="ALL_TASK_CSVS_SCHEMA_PASSED"
+    assert ok["n_valid"]==4
+    assert ok["n_invalid"]==0
+
+
+def test_grid_and_physical_value_contract_violations_are_rejected(tmp_path):
+    plan,local=fixture(tmp_path)
+    static=tmp_path/"static"
+    exp=tmp_path/"exposure"
+    static.mkdir();exp.mkdir()
+    exports(plan,static,exp)
+    target=next(static.glob("f2_static_*.csv"))
+    x=pd.read_csv(target)
+    col=[k for k in x if k not in ("grid_id","urban_fraction_2020")][0]
+    x.loc[0,col]=np.nan
+    x.to_csv(target,index=False)
+    with pytest.raises(ValueError,match="failed closed"):
+        fig2_gee_qc.audit(tmp_path,plan,static,exp,local=local,
+                          tag="fig2_bad_missing",require_complete=True)
+    report=json.loads((tmp_path/"reports"/"fig2_bad_missing"/
+                       "fig2_gee_postdownload_qc.json").read_text())
+    assert report["status"]=="REJECTED"
+
+
+def test_2020_jrc_independent_shadow_detects_area_drift(tmp_path):
+    _,local=fixture(tmp_path)
+    exp=tmp_path/"shadow"
+    exp.mkdir()
+    pd.DataFrame({"grid_id":["0_0","1_0"],"built_area_km2_2020":[50.2,20.1]}).to_csv(
+        exp/"f2_exposure_2020_000000_000001_bshadow.csv",index=False)
+    result=fig2_gee_qc.check_independent_built_area(local,exp)
+    assert result["status"]=="LOCAL_VS_GEE_SOURCE_CROSSCHECK"
+    pd.DataFrame({"grid_id":["0_0","1_0"],"built_area_km2_2020":[60.,20.1]}).to_csv(
+        exp/"f2_exposure_2020_000000_000001_bshadow.csv",index=False)
+    bad=fig2_gee_qc.check_independent_built_area(local,exp)
+    assert bad["status"]=="FAILED_SOURCE_CONSERVATION"
+    assert bad["n_flagged"]==1
+
+
+def test_historical_baseline_and_growth_crosscheck(tmp_path):
+    _,local=fixture(tmp_path)
+    # The reference local file already has built_fraction_2020.
+    static=tmp_path/"static"
+    static.mkdir()
+    pd.DataFrame({"grid_id":["0_0","1_0"],
+                  "built_fraction_2000":[.35,.1],
+                  "built_growth_2000_2020":[.15,.1]}).to_csv(
+        static/"f2_static_2021_000000_000001_bhist.csv",index=False)
+    qc=fig2_gee_qc.check_ghsl_growth_identity(local,static)
+    assert qc["status"]=="HISTORICAL_SHARE_CROSSCHECK"
+    assert qc["n_overlap"]==2
+    pd.DataFrame({"grid_id":["0_0","1_0"],
+                  "built_fraction_2000":[.05,.1],
+                  "built_growth_2000_2020":[.15,.1]}).to_csv(
+        static/"f2_static_2021_000000_000001_bhist.csv",index=False)
+    qc=fig2_gee_qc.check_ghsl_growth_identity(local,static)
+    assert qc["status"]=="FAILED_HISTORICAL_SHARE_IDENTITY"
+    assert qc["n_flagged"]==1
+
+
+def test_nonresidential_area_is_subset_of_local_total(tmp_path):
+    _,local=fixture(tmp_path)
+    p=tmp_path/"exposure"
+    p.mkdir()
+    target=p/"f2_exposure_2020_000000_000001_bnres.csv"
+    pd.DataFrame({"grid_id":["0_0","1_0"],
+                  "built_nres_area_km2_2020":[15.,10.]}).to_csv(target,index=False)
+    good=fig2_gee_qc.check_nres_never_exceeds_total(local,p)
+    assert good["status"]=="NRES_SUBSET_CHECK"
+    pd.DataFrame({"grid_id":["0_0","1_0"],
+                  "built_nres_area_km2_2020":[15.,26.]}).to_csv(target,index=False)
+    bad=fig2_gee_qc.check_nres_never_exceeds_total(local,p)
+    assert bad["status"]=="FAILED_NRES_SUBSET_TOTAL"
+    assert bad["n_violations"]==1
+
+
+def test_bounded_submission_requires_confirmation_and_ledger_resume(tmp_path,monkeypatch):
+    from gee_flooding import fig2_gee_submit
+    plan,_=fixture(tmp_path)
+    with pytest.raises(ValueError,match="at most|At most"):
+        fig2_gee_submit.dispatch(tmp_path,plan,"merit",max_tasks=5)
+    with pytest.raises(ValueError,match="requires"):
+        fig2_gee_submit.dispatch(tmp_path,plan,"merit",max_tasks=1,
+                                 submit=True,project="project")
+    calls=[]
+    def fake_launch(grid,start,count,mode,day,folder,submit=False,
+                    project=None,bands=None):
+        calls.append(dict(grid=str(grid),submit=submit,project=project))
+        return dict(task_submitted=submit,
+                    status="SUBMITTED_NOT_COMPLETE" if submit else "DRY_RUN",
+                    task_id="T"+str(len(calls)) if submit else None,
+                    description="fixture_"+str(len(calls)))
+    monkeypatch.setattr(fig2_gee_submit,"launch",fake_launch)
+    dry=fig2_gee_submit.dispatch(tmp_path,plan,"merit",max_tasks=1)
+    assert dry["status"]=="DRY_RUN"
+    assert not (plan/"fig2_gee_submission_ledger.jsonl").exists()
+    ok=fig2_gee_submit.dispatch(tmp_path,plan,"merit",project="project",
+                                max_tasks=1,submit=True,confirm="SUBMIT")
+    assert ok["submitted_now"]==1
+    rec=json.loads((plan/"fig2_gee_submission_ledger.jsonl").read_text().strip())
+    assert rec["submitted"] is True
+    again=fig2_gee_submit.dispatch(tmp_path,plan,"merit",project="project",
+                                   max_tasks=1,submit=True,confirm="SUBMIT")
+    assert again["submitted_now"]==0
+    assert again["status"]=="NO_UNSUBMITTED_JOBS_IN_REQUESTED_FAMILY"

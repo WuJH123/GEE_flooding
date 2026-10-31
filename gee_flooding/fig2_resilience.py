@@ -26,6 +26,7 @@ SPEC = [
  ("river_water_fraction","sensitivity","MERIT Hydro wat","fraction",93,"static","surface water channel proxy", "optional"),
  ("urban_fraction_2020","exposure","2020 GHS-SMOD frozen GF10","fraction",10000,"2020","fixed frozen GF10", "M2"),
  ("built_fraction_2020","exposure","GHSL BUILT-S","fraction",100,"2020","mean of built_surface/10000", "M3"),
+ ("built_fraction_2000","exposure","GHSL BUILT-S","fraction",100,"2000","historical baseline area share for M4 growth identity", "M4 QC"),
  ("built_nres_fraction_2020","exposure","GHSL BUILT-S NRES","fraction",100,"2020","mean of built_surface_nres/10000", "optional"),
  ("population_count_2020","exposure","GHSL GHS-POP","people",100,"2020","GF10 sum; validate resampling/conservation", "optional"),
  ("built_area_km2_2020","exposure","GHSL BUILT-S","km2",100,"2020","GF10 sum; validate resampling/conservation", "optional"),

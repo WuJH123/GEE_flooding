@@ -29,7 +29,7 @@ STATIC = [
     "river_water_fraction", "urban_fraction_2020", "vegetation_fraction",
     "tree_fraction", "grass_fraction", "cropland_fraction",
     "wetland_fraction", "water_fraction", "bare_fraction",
-    "built_fraction_2020", "built_nres_fraction_2020",
+    "built_fraction_2020", "built_fraction_2000", "built_nres_fraction_2020",
     "built_neighbor_density", "built_fragmentation",
     "built_growth_2000_2020",
 ]
@@ -123,7 +123,7 @@ def _static_image(ee,bands=None):
             if b in wanted:
                 flag=lc.remap(classes,[1]*len(classes),0).rename(b)
                 output[b]=down(flag)
-    built={"built_fraction_2020","built_nres_fraction_2020",
+    built={"built_fraction_2020","built_fraction_2000","built_nres_fraction_2020",
            "built_neighbor_density","built_fragmentation",
            "built_growth_2000_2020"}
     if set(wanted)&built:
@@ -143,11 +143,15 @@ def _static_image(ee,bands=None):
             output["built_fragmentation"]=down(
                 b20.focal_std(radius=1000,units="meters")
                 .rename("built_fragmentation"))
-        if "built_growth_2000_2020" in wanted:
+        if {"built_fraction_2000","built_growth_2000_2020"}&set(wanted):
             b00=ee.Image(PRODUCTS["ghsl_2000"]).select(
                 "built_surface").divide(10000).clamp(0,1)
-            output["built_growth_2000_2020"]=down(
-                b20.subtract(b00).rename("built_growth_2000_2020"))
+            if "built_fraction_2000" in wanted:
+                output["built_fraction_2000"]=down(
+                    b00.rename("built_fraction_2000"))
+            if "built_growth_2000_2020" in wanted:
+                output["built_growth_2000_2020"]=down(
+                    b20.subtract(b00).rename("built_growth_2000_2020"))
     return ee.Image.cat([output[name] for name in wanted])
 
 
@@ -172,21 +176,32 @@ def _weather_image(ee, day):
                          history.count().rename("n_obs_7d"),sw1,sw2,temp])
 
 
-def _exposure_image(ee):
-    # GHSL's counts and built m2 refer to an original 100m (=10000m2)
-    # equal-area grid cell. First form density/fraction, then re-integrate
-    # using output pixelArea after sampling in EPSG:4326. Summing raw source
-    # cell counts on a geographic output grid is NOT population-conserving.
+def _exposure_image(ee,bands=None):
+    """Build only requested GHSL bands; 100m WGS84 integration is approximate.
+
+    Original 100m count/area values are converted to densities in original
+    JRC equal-area units and integrated over the requested output pixel area.
+    A separate source-projection/local shadow check is mandatory for totals.
+    """
+    requested=list(bands or EXPOSURE)
+    if not requested or len(set(requested))!=len(requested) or set(requested)-set(EXPOSURE):
+        raise ValueError("Invalid exposure bands")
     area=ee.Image.pixelArea()
-    b=ee.Image(PRODUCTS["ghsl_2020"])
-    pop=ee.Image(PRODUCTS["ghsl_pop_2020"]).select("population_count")
-    return ee.Image.cat([
-        pop.divide(10000).multiply(area).rename("population_count_2020"),
-        b.select("built_surface").divide(10000).multiply(area).divide(1e6)
-          .rename("built_area_km2_2020"),
-        b.select("built_surface_nres").divide(10000).multiply(area).divide(1e6)
-          .rename("built_nres_area_km2_2020")
-    ])
+    out={}
+    if "population_count_2020" in requested:
+        pop=ee.Image(PRODUCTS["ghsl_pop_2020"]).select("population_count")
+        out["population_count_2020"]=pop.divide(10000).multiply(area).rename(
+            "population_count_2020")
+    if set(requested)&{"built_area_km2_2020","built_nres_area_km2_2020"}:
+        b=ee.Image(PRODUCTS["ghsl_2020"])
+        if "built_area_km2_2020" in requested:
+            out["built_area_km2_2020"]=b.select("built_surface").divide(
+                10000).multiply(area).divide(1e6).rename("built_area_km2_2020")
+        if "built_nres_area_km2_2020" in requested:
+            out["built_nres_area_km2_2020"]=b.select(
+                "built_surface_nres").divide(10000).multiply(area).divide(1e6).rename(
+                "built_nres_area_km2_2020")
+    return ee.Image.cat([out[name] for name in requested])
 
 
 def _gfd_image(ee,event_id):
@@ -282,7 +297,7 @@ def launch(grid,start_row,count,mode,day,folder,submit=False,
         reducer=ee.Reducer.mean()
     elif mode=="exposure":
         requested=bands or EXPOSURE
-        image=_exposure_image(ee).select(requested)
+        image=_exposure_image(ee,requested)
         selectors=["grid_id"]+requested
         reducer=ee.Reducer.sum()
     else:
