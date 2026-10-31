@@ -7,6 +7,7 @@ polygons and its stable grid_id accompanies each exported record.
 """
 from __future__ import annotations
 import argparse
+import hashlib
 import json
 from datetime import date
 from pathlib import Path
@@ -201,8 +202,18 @@ def validate_export_contract(mode,day=None,event_id=None,scale=None):
 
 
 def launch(grid,start_row,count,mode,day,folder,submit=False,
-           event_id=None,project=None,scale=None):
+           event_id=None,project=None,scale=None,bands=None):
     effective_scale=validate_export_contract(mode,day,event_id,scale)
+    if bands:
+        if isinstance(bands,str):
+            bands=[s.strip() for s in bands.split(",") if s.strip()]
+        allowed={"static":GEE_STATIC,"exposure":EXPOSURE}.get(mode)
+        if not allowed:
+            raise ValueError("Band-selective GEE gap export only supports static/exposure")
+        if not bands or len(set(bands))!=len(bands) or set(bands)-set(allowed):
+            raise ValueError("Invalid or duplicate GEE band selection: "+str(bands))
+    else:
+        bands=None
     d=selected_grid(grid,start_row,count)
     last=start_row+len(d)-1
     batch=f"{start_row:06d}_{last:06d}"
@@ -211,7 +222,12 @@ def launch(grid,start_row,count,mode,day,folder,submit=False,
             "weather":f"f2_weather_{day.replace('-','')}_{batch}" if day else "",
             "gfd":f"f2_gfd_{int(event_id):06d}_{batch}" if event_id is not None else ""}
     description=labels[mode]
+    if bands:
+        # Task names remain unique for different selected indicators and cells.
+        signature=",".join(sorted(bands))+"|"+",".join(d.grid_id.astype(str))
+        description += "_b"+hashlib.sha256(signature.encode()).hexdigest()[:10]
     result={"description":description,"mode":mode,"rows":len(d),"task_submitted":False,
+            "requested_bands":bands if bands else ("ALL_"+mode),
             "sampling_scale_m":effective_scale,"grid_crs":"EPSG:6933",
             "gee_geometry_crs":"EPSG:4326",
             "export_type":"table CSV, one row per frozen 10km GF10 cell",
@@ -235,12 +251,14 @@ def launch(grid,start_row,count,mode,day,folder,submit=False,
         selectors=["grid_id"]+WEATHER
         reducer=ee.Reducer.mean()
     elif mode=="static":
-        image=_static_image(ee)
-        selectors=["grid_id","urban_fraction_2020"]+GEE_STATIC
+        requested=bands or GEE_STATIC
+        image=_static_image(ee).select(requested)
+        selectors=["grid_id","urban_fraction_2020"]+requested
         reducer=ee.Reducer.mean()
     elif mode=="exposure":
-        image=_exposure_image(ee)
-        selectors=["grid_id"]+EXPOSURE
+        requested=bands or EXPOSURE
+        image=_exposure_image(ee).select(requested)
+        selectors=["grid_id"]+requested
         reducer=ee.Reducer.sum()
     else:
         n=ee.ImageCollection(PRODUCTS["gfd"]).filter(ee.Filter.eq("id",int(event_id))).size().getInfo()
@@ -273,9 +291,10 @@ def main(argv=None):
     p.add_argument("--folder",default="GEE_flooding_Figure2")
     p.add_argument("--project",help="GEE Cloud project, for submission only")
     p.add_argument("--submit",action="store_true",help="Start ONE table export")
+    p.add_argument("--bands",help="Comma-separated missing indicators for static/exposure only; no new GEE datasets")
     a=p.parse_args(argv)
     out=launch(a.grid,a.start_row,a.count,a.mode,a.date,a.folder,
-               a.submit,a.gfd_id,a.project,a.scale)
+               a.submit,a.gfd_id,a.project,a.scale,a.bands)
     print(json.dumps(out,ensure_ascii=False,indent=2))
 
 
