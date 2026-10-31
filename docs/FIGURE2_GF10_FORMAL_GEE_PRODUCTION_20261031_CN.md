@@ -127,3 +127,17 @@ WorldCover https://developers.google.com/earth-engine/datasets/catalog/ESA_World
 IMERG https://developers.google.com/earth-engine/datasets/catalog/NASA_GPM_L3_IMERG_V07
 GEE weighted reduceRegions https://developers.google.com/earth-engine/guides/reducers_reduce_region
 GISD30 https://essd.copernicus.org/articles/14/1831/2022/
+
+
+### GISD30本地99份切片：先做真实覆盖盘点，再决定是否下载1.3GB官方压缩包
+
+对上轮已生成的read-only本地候选CSV运行，**不会读取整个30m栅格、不会下载数据、更不会冒充真实不透水比例**：
+
+    $GISD_INDEX="$ROOT\reports\fig2_local_candidates_20261031\fig2_local_candidates.csv"
+    if (-not (Test-Path $GISD_INDEX)) { throw "Locate existing fig2_local_candidates.csv from Codex" }
+    & $PY -m gee_flooding.fig2_gisd30_coverage --root $ROOT --grid $GRID --candidates $GISD_INDEX --tag fig2_gisd30_tile_audit_v1
+    Import-Csv "$ROOT\reports\fig2_gisd30_tile_audit_v1\fig2_gisd30_frozen_grid_tile_coverage.csv" |
+      Where-Object requires_GISD30_source_tile -eq "True" |
+      Select-Object grid_id,requires_GISD30_source_tile
+
+这些是缺乏当前已解压GeoTIFF空间重叠的候选格网，还不能据此判断整个区域没有压缩包。先检查本地已有RAR是否包含对应5度切片，再通过 https://zenodo.org/records/5220816 下载确实缺失的原包。下载前核对文件MD5及位置，严禁删除旧版本。随后需要用按原生类别重编码和真正面积保守的算法产生0–1不透水比例。当前这一步只是P1的数据源空间覆盖与下载判定，并不替代GEE P0核心指标导出。
