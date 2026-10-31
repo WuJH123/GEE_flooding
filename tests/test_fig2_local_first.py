@@ -241,8 +241,9 @@ def test_gee_static_source_family_is_lazily_built():
         @staticmethod
         def mean():return "mean"
     class EE:
-        Reducer=Reducer
-        Image=staticmethod(lambda name:(loaded.append(name),Fake())[1])
+        pass
+    EE.Reducer=Reducer
+    EE.Image=staticmethod(lambda name:(loaded.append(name),Fake())[1])
     x=_static_image(EE(),["hand_m"])
     assert len(x)==1
     assert loaded==["MERIT/Hydro/v1_0_1"]
