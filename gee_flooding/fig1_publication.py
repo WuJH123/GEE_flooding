@@ -68,7 +68,7 @@ def summarize_physical(physical_csv,grid,high_days):
                  "observation_type","pluvial_class","evidence_uri"]].copy()
     return out,qc
 
-def plot_five_panels(frame,days,tiers,city,physical,external_qc,out,summary):
+def plot_five_panels(frame,days,tiers,city,physical,external_qc,external_sensitivity,out,summary):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -136,24 +136,28 @@ def plot_five_panels(frame,days,tiers,city,physical,external_qc,out,summary):
         c.legend(fontsize=7,frameon=False,loc="lower right")
     c.set_title("ABC among city-linked news (not all reports)",fontsize=7)
     c.grid(axis="x",alpha=.10)
-    # d: independent physical observations vs mere GFID catalogue candidates
-    d.set_title("d  Independent flood evidence and catalogues",loc="left",weight="bold")
-    d.axis("off")
-    candidate=external_qc.get("gfid_audit",{}).get("accepted_rows")
-    message=(f"GFID: {candidate:,} dated representative records; NOT physical truth."
-             if isinstance(candidate,int) else "GFID catalogue QC unavailable.")
-    d.text(.02,.82,message,fontsize=10,transform=d.transAxes)
-    if physical is None:
-        d.text(.02,.51,"Independent observed PLUVIAL support: PENDING",
-               color="#A55F26",fontsize=11,weight="bold",transform=d.transAxes)
-        d.text(.02,.25,"GFD/CEMS: no vetted spatial-temporal physical rows supplied.",
-               fontsize=9,transform=d.transAxes,wrap=True)
-    else:
-        n=len(physical);flood=physical.news_matches_within_window.sum()
-        d.text(.02,.51,f"Reviewed pluvial positives: {n:,}",fontsize=11,
-               color="#237C6D",weight="bold",transform=d.transAxes)
-        d.text(.02,.26,f"Coincident HIGH news grid-days: {flood:,} (selected-case support)",
-               fontsize=9,transform=d.transAxes)
+    # d: GFID catalogue candidate overlap plus independent physical evidence,
+    # explicitly separating temporal negative control from actual sensor observations.
+    d.set_title("d  External catalogue overlap vs observed inundation",loc="left",weight="bold")
+    sub=external_sensitivity[
+          external_sensitivity.radius_km.eq(75)&external_sensitivity.day_window.eq(7)]
+    pivot=sub.pivot(index="family",columns="control",values="candidate_grid_days")
+    fam=[x for x in ("DFO","DESINVENTAR","EMDAT","HANZE") if x in pivot.index]
+    yy=np.arange(len(fam))
+    observed=pivot.reindex(fam).get("OBSERVED",pd.Series(0,index=fam)).fillna(0)
+    shifted=pivot.reindex(fam).get("SHIFT_NEWS_183_DAYS",pd.Series(0,index=fam)).fillna(0)
+    d.barh(yy-.17,observed.to_numpy()/1000,height=.31,
+           color="#507EA4",label="GFID catalogue")
+    d.barh(yy+.17,shifted.to_numpy()/1000,height=.31,
+           color="#C19C67",label="183-day shift")
+    d.set(yticks=yy,yticklabels=fam,xlabel="Candidate grid-days (thousands)")
+    d.legend(frameon=False,fontsize=7,loc="upper right")
+    d.grid(axis="x",alpha=.1)
+    phys_label=("No independently vetted pluvial sensor cases yet" if physical is None else
+                f"{len(physical):,} reviewed physical positives; "+
+                f"{int(physical.news_matches_within_window.sum()):,} with news overlap")
+    d.text(.01,.02,phys_label,transform=d.transAxes,ha="left",va="bottom",
+           fontsize=8,color="#8A4A1F" if physical is None else "#216B5D")
     # e: cities split based only on 2021–2023; 'sparse' never 'safe from flooding'.
     e.set_title("e  Predeclared city candidates; sparse ≠ flood-free",loc="left",weight="bold")
     colors={"INSUFFICIENT_NEWS_EVIDENCE":"#AFB6BD",
@@ -194,6 +198,14 @@ def run(root,tag,spatial_dir,tier_dir,city_file,crosswalk_file,v3_qc,
         raise ValueError("Historic geocoded reports unexpectedly placed in new peripheral frame")
     c,strata,news=city_attributes(c,cx,tiers,city_pop=city_population)
     external=json.loads(Path(v3_qc).read_text(encoding="utf-8"))
+    external_sensitivity_path=Path(v3_qc).parent/"gfid_candidate_sensitivity.csv"
+    if not external_sensitivity_path.is_file():
+        raise FileNotFoundError("Full GFID source-family concordance table missing: "+
+                                str(external_sensitivity_path))
+    external_sensitivity=pd.read_csv(external_sensitivity_path)
+    expected={"family","radius_km","day_window","control","candidate_grid_days"}
+    if expected-set(external_sensitivity.columns):
+        raise ValueError("Invalid GFID sensitivity schema")
     if external.get("gfid_audit",{}).get("raw_rows")!=136642:
         raise ValueError("Expected full USGS GFID source ledger, no reduced/smoke data")
     if external.get("sensitivity_is_full_data") is not True:
@@ -240,7 +252,8 @@ def run(root,tag,spatial_dir,tier_dir,city_file,crosswalk_file,v3_qc,
     counts={"raw_news":tierqc["raw_source_rows"],
             "mapped_news":tierqc["matched_unique_uuids"],
             "grid_candidate_clusters":len(clusters)}
-    plot_five_panels(frame,days,tiers,c,phys,external,out,counts)
+    external_sensitivity.to_csv(out/"source_family_catalogue_concordance.csv",index=False)
+    plot_five_panels(frame,days,tiers,c,phys,external,external_sensitivity,out,counts)
     size_missing=int(c.population_2020.isna().sum())
     unknown_countries=int(c.country.eq("Unknown").sum())
     independent_present=bool(physical_file)
