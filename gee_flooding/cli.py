@@ -54,6 +54,11 @@ def parser():
     s.add_argument('--review-n',type=int,default=600)
     s.add_argument('--tag',default='fig1_v3')
     s.add_argument('--fast',action='store_true',help='1k grid-day GFID matching SMOKE ONLY; never publish')
+    s=commands.add_parser('fig1-ucdb-population',help='Inspect official UCDB fields or export explicitly verified 2020 population')
+    s.add_argument('--ucdb',type=Path,required=True)
+    s.add_argument('--layer',default='GHS_UCDB_THEME_GENERAL_CHARACTERISTICS_GLOBE_R2024A')
+    s.add_argument('--population-field',default=None)
+    s.add_argument('--tag',default='fig1_publication_v1')
     s=commands.add_parser('fig1-spatial-frame',help='Frozen GF10 core + verified adjacent raster periphery, NO DOWNLOAD')
     s.add_argument('--core',type=Path,required=True)
     s.add_argument('--west',type=Path,required=True)
@@ -111,6 +116,9 @@ def main(argv=None):
                      physical=args.physical,tag=args.tag,
                      world=args.world,reviewer_table=args.reviewer_table,
                      review_n=args.review_n,fast=args.fast)
+    elif args.command=='fig1-ucdb-population':
+        from .fig1_ucdb_population import inspect
+        result=inspect(root,args.ucdb,args.layer,args.population_field,args.tag)
     elif args.command=='fig1-spatial-frame':
         from .fig1_spatial import freeze_periphery
         result=freeze_periphery(root,args.core,args.west,args.east,args.tag)
