@@ -1,0 +1,24 @@
+{
+  "_instructions": "Edit paths after reviewing fig2_local_candidates.csv. Keep only VARIABLES whose actual raster tiles, CRS, native units, band and epoch have been verified. Missing files cause a deliberate error. Do not use old 20km result tables. The two examples below are not claimed present.",
+  "variables": [
+    {
+      "name": "built_fraction_2020",
+      "dataset": "GHSL_BUILT_S_R2023A",
+      "epoch": "2020",
+      "kind": "cell_sum",
+      "native_units": "m2_per_native_pixel",
+      "unit": "fraction",
+      "band": 1,
+      "paths": ["E:/REPLACE_WITH_VERIFIED/GHS_BUILT_S_E2020_100m.tif"]
+    },
+    {
+      "name": "hand_m",
+      "dataset": "MERIT_HYDRO",
+      "epoch": "static",
+      "kind": "mean",
+      "unit": "m",
+      "band": 1,
+      "paths": ["E:/REPLACE_WITH_VERIFIED/MERIT_hnd.tif"]
+    }
+  ]
+}

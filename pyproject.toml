@@ -15,6 +15,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
+local = ["exactextract>=0.3,<0.4"]
 
 [project.scripts]
 gee-flooding = "gee_flooding.cli:main"
