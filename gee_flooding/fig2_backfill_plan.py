@@ -22,7 +22,7 @@ FAMILIES={
     "landcover":("static",["vegetation_fraction","tree_fraction",
                            "grass_fraction","cropland_fraction","wetland_fraction",
                            "water_fraction","bare_fraction"]),
-    "builtform":("static",["built_fraction_2020","built_nres_fraction_2020",
+    "builtform":("static",["built_fraction_2020","built_fraction_2000","built_nres_fraction_2020",
                           "built_neighbor_density","built_fragmentation",
                           "built_growth_2000_2020"]),
     "population":("exposure",list(EXPOSURE)),
