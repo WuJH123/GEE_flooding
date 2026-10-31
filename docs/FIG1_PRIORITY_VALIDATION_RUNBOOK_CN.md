@@ -81,10 +81,10 @@ CSV 每行 = 一个 UUID × 一个审查人，至少列 event_id, reviewer_id, e
 
 先做 IMERG V07 + ERA5-Land 观测一致性。2018 年以前的事件可同时考虑 GFD；2021–2025 年用 CEMS GFM/现场资料为主。GEE 用户应使用其实际已授权 Cloud project ID，不能无条件使用旧项目 ID。
 
-生成小清单（从 A/B/C 和不同年代抽24条）：
-    & $PY -m gee_flooding --root $ROOT fig1-prepare-weather-pilot --tiers "$ROOT\outputs\fig1_publication_r1\labels\raw_uuid_tiers.parquet" --grid "$GRID" --n 24 --seed 42 --tag fig1_pilot_r1
+生成小清单（从 A/B/C 与不同年代抽24条有报道日期，并尝试为每条配一个同一网格、相近季节的未报道参考日；通常得到至多48条）：
+    & $PY -m gee_flooding --root $ROOT fig1-prepare-weather-pilot --tiers "$ROOT\outputs\fig1_publication_r1\labels\raw_uuid_tiers.parquet" --grid "$GRID" --n 24 --seed 42 --paired-controls --tag fig1_pilot_r1
 
-输出 outputs\fig1_pilot_r1\gee\fig1_imerg_pilot_manifest.csv。首次只 dry-run:
+输出 outputs\fig1_pilot_r1\gee\fig1_imerg_pilot_manifest.csv。包含 sample_role、pair_id：REPORTED_NEWS_DAY 与 UNLABELED_SAME_GRID_SEASON，后者**不是无洪涝负例**。脚本默认只取前12行（按 pair_id 排序，约6对）；先做 dry-run:
     $PROJECT="填入本人已授权的 EE Cloud project ID"
     $MANIFEST="$ROOT\outputs\fig1_pilot_r1\gee\fig1_imerg_pilot_manifest.csv"
     & $PY -m gee_flooding --root $ROOT fig1-gee-pilot --project "$PROJECT" --manifest "$MANIFEST" --max-rows 12
