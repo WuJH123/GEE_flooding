@@ -56,13 +56,44 @@ def source_frame(data,domain,name,allow_partial=True):
 
 
 def _load_gee(directory,prefix):
+    """Combine disjoint GF10 bands/files but forbid inconsistent duplicate values."""
     if not directory:return None
     directory=Path(directory)
     if not directory.is_dir():raise FileNotFoundError(str(directory))
     files=sorted(directory.glob(prefix+"*.csv"))
     if not files:
         raise FileNotFoundError(str(directory)+": no "+prefix+" CSV")
-    return pd.concat([pd.read_csv(p) for p in files],ignore_index=True)
+    result=None
+    for path in files:
+        part=pd.read_csv(path)
+        if "grid_id" not in part:raise ValueError("Missing GF10 grid_id in "+str(path))
+        part.grid_id=part.grid_id.astype(str)
+        if part.grid_id.duplicated().any():raise ValueError("Duplicate GF10 row in "+str(path))
+        # Urban fraction is frozen in the GF10 reference; it is not an Earth
+        # Engine predictor to be merged from the exporter CSV property.
+        part=part.drop(columns=["urban_fraction_2020"],errors="ignore")
+        fields=[c for c in part if c!="grid_id" and c in VALID]
+        if not fields:raise ValueError("No recognized bands in GEE "+str(path))
+        part=part[["grid_id"]+fields].set_index("grid_id")
+        if result is None:
+            result=part
+            continue
+        united=result.index.union(part.index)
+        result=result.reindex(united)
+        part=part.reindex(united)
+        for name in fields:
+            incoming=pd.to_numeric(part[name],errors="coerce")
+            if name in result:
+                prior=pd.to_numeric(result[name],errors="coerce")
+                overlap=prior.notna() & incoming.notna()
+                if overlap.any() and not np.allclose(
+                    prior[overlap],incoming[overlap],rtol=1e-5,atol=1e-5):
+                    raise ValueError("Conflicting duplicate GEE band "+name+
+                                     " from "+str(path))
+                result[name]=prior.combine_first(incoming)
+            else:
+                result[name]=incoming
+    return result.reset_index()
 
 
 def assemble(root,grid,tag,local=None,gee_static=None,gee_exposure=None,
