@@ -54,6 +54,39 @@ def parser():
     s.add_argument('--review-n',type=int,default=600)
     s.add_argument('--tag',default='fig1_v3')
     s.add_argument('--fast',action='store_true',help='1k grid-day GFID matching SMOKE ONLY; never publish')
+    s=commands.add_parser('fig1-review-audit',help='Human adjudication and incomplete-review gate')
+    s.add_argument('--queue',type=Path,required=True)
+    s.add_argument('--reviews',type=Path,required=True)
+    s.add_argument('--tag',default='fig1_review_r1')
+    s=commands.add_parser('fig1-gfd-probe',help='One known GFD event and one original GF10 cell; dry-run by default')
+    s.add_argument('--project',required=True)
+    s.add_argument('--grid',type=Path,required=True)
+    s.add_argument('--grid-id',required=True)
+    s.add_argument('--gfd-event-id',type=int,required=True)
+    s.add_argument('--description',default='FIG1_GFD_VERIFIED_WATER_PILOT')
+    s.add_argument('--submit',action='store_true')
+    s=commands.add_parser('fig1-preflight',help='P0 metadata and source-ledger validation, no downloads')
+    s.add_argument('--raw',type=Path,required=True)
+    s.add_argument('--mapped',type=Path,required=True)
+    s.add_argument('--grid',type=Path,required=True)
+    s.add_argument('--city-file',type=Path,required=True)
+    s.add_argument('--v3-qc',type=Path,required=True)
+    s.add_argument('--crosswalk',type=Path,required=True)
+    s.add_argument('--tag',default='fig1_preflight_r1')
+    s=commands.add_parser('fig1-prepare-weather-pilot',help='Stratified 24-observation manifest for IMERG/ERA5, no submission')
+    s.add_argument('--tiers',type=Path,required=True)
+    s.add_argument('--grid',type=Path,required=True)
+    s.add_argument('--tag',default='fig1_pilot_r1')
+    s.add_argument('--n',type=int,default=24)
+    s.add_argument('--seed',type=int,default=42)
+    s.add_argument('--paired-controls',action='store_true',
+                   help='same-grid season nearby no-news dates are UNLABELED, not dry negatives')
+    s=commands.add_parser('fig1-gee-pilot',help='Dry-run by default; optional bounded 12-row EE table export')
+    s.add_argument('--project',required=True)
+    s.add_argument('--manifest',type=Path,required=True)
+    s.add_argument('--description',default='FIG1_IMERG_V07_PILOT')
+    s.add_argument('--max-rows',type=int,default=12)
+    s.add_argument('--submit',action='store_true')
     s=commands.add_parser('fig1-ucdb-population',help='Inspect official UCDB fields or export explicitly verified 2020 population')
     s.add_argument('--ucdb',type=Path,required=True)
     s.add_argument('--layer',default='GHS_UCDB_THEME_GENERAL_CHARACTERISTICS_GLOBE_R2024A')
@@ -116,6 +149,25 @@ def main(argv=None):
                      physical=args.physical,tag=args.tag,
                      world=args.world,reviewer_table=args.reviewer_table,
                      review_n=args.review_n,fast=args.fast)
+    elif args.command=='fig1-review-audit':
+        from .fig1_review import summarize
+        result=summarize(root,args.queue,args.reviews,args.tag)
+    elif args.command=='fig1-gfd-probe':
+        from .fig1_gfd_probe import gfd_probe
+        result=gfd_probe(args.project,args.grid,args.grid_id,args.gfd_event_id,
+                         args.submit,args.description)
+    elif args.command=='fig1-preflight':
+        from .fig1_preflight import inspect
+        result=inspect(root,args.raw,args.mapped,args.grid,args.city_file,
+                       args.v3_qc,args.crosswalk,args.tag)
+    elif args.command=='fig1-prepare-weather-pilot':
+        from .fig1_gee_pilot import prepare
+        result=prepare(root,args.tiers,args.grid,args.tag,args.n,args.seed,
+                       paired_controls=args.paired_controls)
+    elif args.command=='fig1-gee-pilot':
+        from .fig1_gee_pilot import run_gee
+        result=run_gee(args.project,args.manifest,args.description,
+                       args.submit,args.max_rows)
     elif args.command=='fig1-ucdb-population':
         from .fig1_ucdb_population import inspect
         result=inspect(root,args.ucdb,args.layer,args.population_field,args.tag)
