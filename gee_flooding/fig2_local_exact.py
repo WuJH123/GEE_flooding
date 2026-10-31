@@ -45,7 +45,9 @@ SUPPORTED={
     "built_fraction_2020":("cell_sum","GHSL_BUILT_S_R2023A","2020"),
     "built_nres_fraction_2020":("cell_sum","GHSL_BUILT_S_R2023A","2020"),
     "built_fraction_2000":("cell_sum","GHSL_BUILT_S_R2023A","2000"),
-    "impervious_fraction":("native_fraction","GAIA_OR_GISD_VERSIONED","2020"),
+    # GISD30 original dynamic codes 0 pervious; 1..8 impervious by 2020.
+    # Never average raw epoch codes as a fractional impervious surface.
+    "impervious_fraction":("class_fraction","GISD30_1985_2020","2020"),
     "built_volume_m3":("cell_sum","GHSL_BUILT_V_VERSIONED","2020"),
 }
 CLASS_CODES={
@@ -54,6 +56,7 @@ CLASS_CODES={
     "water_fraction":[80], "bare_fraction":[60],
     "vegetation_fraction":[10,20,30,40,90,95],
     "river_water_fraction":[1],
+    "impervious_fraction":[1,2,3,4,5,6,7,8],
 }
 CELL_SUM_FACTOR={
     "built_area_km2_2020":1/1e6,
