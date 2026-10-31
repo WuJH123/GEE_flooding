@@ -124,3 +124,28 @@ GEE任务须显示COMPLETED，并从Google Drive下载CSV到数据文件夹后�
 对实在缺失且下载量小于10GB的区域小数据，可以从产品官方链接按城市/事件取得（先核查许可与文件体积），不得自动抓取整个全球资料。CN-Floods、河南、伦敦及武汉本地已存在时，不重新下载同类事件包。
 
 **本次代码只实现local-first的真实格网指标路径与GEE静态补缺判断；还没有读取用户本机655GB实际文件，不能报出全球已得到多少有效指标。**
+
+
+## H. 新增：最精确的GEE缺失波段与缺失格网补采（不要重采全部静态变量）
+
+先检查 integrated_GF10 宽表和 gap CSV；例如仅有部分城市的 HAND 不完整：
+
+    $INTEGRATED="$ROOT\data\derived\fig2_integrated_GF10_pilot_v1\fig2_GF10_resilience_indicators.parquet"
+    & $PY -m gee_flooding.fig2_gap_grid --root $ROOT --grid $GRID --indicators $INTEGRATED --indicator hand_m --tag fig2_gap_hand_v1
+    $GAP="$ROOT\data\reference\fig2_gap_hand_v1\fig2_GF10_missing_grid.parquet"
+    $GAP_QC=Get-Content "$ROOT\data\reference\fig2_gap_hand_v1\fig2_gap_grid_qc.json" -Raw | ConvertFrom-Json
+    $GAP_N=[Math]::Min(20,[int]$GAP_QC.missing_GF10_count)
+
+用只有缺失格网的文件，且只选缺失波段先dry-run：
+
+    & $PY -m gee_flooding.fig2_gee --grid $GAP --mode static --bands hand_m --start-row 0 --count $GAP_N
+
+核对任务描述、GF10首末格ID、GEE project和差异，再明确提交：
+
+    & $PY -m gee_flooding.fig2_gee --grid $GAP --mode static --bands hand_m --start-row 0 --count $GAP_N --project $PROJECT --submit
+
+对于坡度和汇流面积可使用 --bands slope_deg,upstream_area_km2；GHSL人口仅缺失时用 --mode exposure --bands population_count_2020。**不需要下载任意全球高分辨率GeoTIFF。**
+
+这类选定波段任务文件名包含一致性hash，避免不同网格或不同指标导出同名。多个GEE表格CSV可以放在同一fig2_static/fig2_exposure文件夹，fig2_indicators 会按grid_id和字段逐个合并；若同一格同一字段重复且值不同，则报错，不会随意取平均。
+
+完整GEE后续fig2_prepare模型准备仍要求完整静态因子。这个针对缺口的导出与合并用于构建GF10韧性静态指标表，**不等于已有真实的整个2021–2025事件暴露/物理验证**。
