@@ -227,7 +227,7 @@ def run(root,panel,city_audit,contract,tag="fig2_frozen_2021_2025",
     results=pd.DataFrame(metrics)
     out.mkdir(parents=True,exist_ok=False)
     results.to_csv(out/"fig2_frozen_prospective_ablation.csv",index=False)
-    pd.DataFrame(preds).to_parquet(out/"fig2_frozen_m4_news_proxy_predictions.parquet",index=False)
+    pd.concat(preds,ignore_index=True).to_parquet(out/"fig2_frozen_m4_news_proxy_predictions.parquet",index=False)
     pd.DataFrame([{"comparison":k,**v} for k,v in failed.items()]).to_csv(
         out/"fig2_frozen_invalid_evaluations.csv",index=False)
     _plot(out,results)
