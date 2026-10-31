@@ -235,6 +235,9 @@ def test_gee_static_source_family_is_lazily_built():
         def reduceResolution(self,**kwargs):return self
         def eq(self,*args,**kwargs):return self
     class Image:
+        def __new__(cls,name):
+            loaded.append(name)
+            return Fake()
         @staticmethod
         def cat(items):return items
     class Reducer:
@@ -243,7 +246,7 @@ def test_gee_static_source_family_is_lazily_built():
     class EE:
         pass
     EE.Reducer=Reducer
-    EE.Image=staticmethod(lambda name:(loaded.append(name),Fake())[1])
+    EE.Image=Image
     x=_static_image(EE(),["hand_m"])
     assert len(x)==1
     assert loaded==["MERIT/Hydro/v1_0_1"]
