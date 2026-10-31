@@ -8,7 +8,8 @@ import json
 import pandas as pd
 from .paths import safe_output,atomic_json
 
-def prepare(root,tier_path,grid_path,tag="fig1_pilot_r1",n=24,seed=42):
+def prepare(root,tier_path,grid_path,tag="fig1_pilot_r1",n=24,seed=42,
+            paired_controls=False):
     if not 1<=n<=100:raise ValueError("Pilot maximum is 100; never bulk submit")
     d=pd.read_parquet(tier_path,columns=["grid_id","date","spatial_temporal_tier"])
     d["date"]=pd.to_datetime(d.date).dt.normalize()
@@ -45,19 +46,47 @@ def prepare(root,tier_path,grid_path,tag="fig1_pilot_r1",n=24,seed=42):
                        random_state=seed+1)],ignore_index=True)
     if len(sample)>n:sample=sample.sample(n=n,random_state=seed)
     sample=sample.sort_values(["period","date","grid_id"]).reset_index(drop=True)
+    sample["sample_role"]="REPORTED_NEWS_DAY"
+    sample["pair_id"]=["F1PAIR_%04d"%(i+1) for i in range(len(sample))]
+    if paired_controls:
+        # Same-grid same-season reference; NEVER pretend that no news = no flood.
+        known=set(zip(days.grid_id.astype(str),days.date.dt.strftime("%Y-%m-%d")))
+        comparisons=[]
+        for rec in sample.itertuples(index=False):
+            reference=None
+            for offset in (28,-28,35,-35,21,-21):
+                probe=rec.date+pd.Timedelta(days=offset)
+                if probe.year!=rec.date.year:continue
+                # reject all observed reports in +/- 3 days of reference
+                nearby=[(str(rec.grid_id),(probe+pd.Timedelta(days=j)).strftime("%Y-%m-%d"))
+                        for j in range(-3,4)]
+                if not any(t in known for t in nearby):
+                    reference=probe;break
+            if reference is None:continue  # observed row remains in sample
+            record={k:getattr(rec,k) for k in sample.columns}
+            record["date"]=reference
+            record["sample_role"]="UNLABELED_SAME_GRID_SEASON"
+            comparisons.append(record)
+        if comparisons:
+            sample=pd.concat([sample,pd.DataFrame(comparisons)],ignore_index=True)
+    # pair first then chronology; the first 12 EE rows contain observed/control
+    # together when pairs are available, not only reported news rows.
+    sample["role_order"]=sample.sample_role.map({
+        "REPORTED_NEWS_DAY":0,"UNLABELED_SAME_GRID_SEASON":1})
+    sample=sample.sort_values(["pair_id","role_order","date"]).reset_index(drop=True)
     sample["date"]=sample.date.dt.strftime("%Y-%m-%d")
     sample["pilot_id"]=["F1P_%04d"%(i+1) for i in range(len(sample))]
-    sample["date_utc_policy"]="UTC_DAY_NEWS_ONSET_PROXY"
+    sample["date_utc_policy"]="UTC_DAY_NEWS_ONSET_PROXY_OR_REFERENCE"
     sample["gfd_catalogue_period"]=sample["period"].eq("GFD_2001_2018")
     dest=safe_output(root,f"outputs/{tag}/gee")
     if dest.exists():raise FileExistsError(dest)
     dest.mkdir(parents=True,exist_ok=False)
-    sample[["pilot_id","grid_id","grid_x","grid_y","longitude","latitude",
-        "date","spatial_temporal_tier","period","hemisphere",
-        "date_utc_policy","gfd_catalogue_period"]].to_csv(
+    sample[["pilot_id","pair_id","sample_role","grid_id","grid_x","grid_y",
+        "longitude","latitude","date","spatial_temporal_tier","period",
+        "hemisphere","date_utc_policy","gfd_catalogue_period"]].to_csv(
             dest/"fig1_imerg_pilot_manifest.csv",index=False)
     qc={"status":"PILOT_ONLY_NO_PHYSICAL_VALIDATION",
-        "n":len(sample),"seed":seed,"n_requested":n,
+        "n":len(sample),"n_reported_days":int(sample.sample_role.eq("REPORTED_NEWS_DAY").sum()),"n_unlabeled_reference_days":int(sample.sample_role.eq("UNLABELED_SAME_GRID_SEASON").sum()),"paired_controls":bool(paired_controls),"seed":seed,"n_requested":n,
         "by_tier":sample.spatial_temporal_tier.value_counts().to_dict(),
         "by_period":sample.period.astype(str).value_counts().to_dict(),
         "data_source":"Frozen GF10 and original Groundsource news dates",
@@ -117,6 +146,8 @@ def run_gee(project,manifest,description="FIG1_IMERG_V07_PILOT",submit=False,
              maxPixels=10000,crs="EPSG:6933").get("volumetric_soil_water_layer_1"),None)
         feature=ee.Feature(poly.centroid(100),{
           "pilot_id":str(r.pilot_id),"grid_id":str(r.grid_id),
+          "pair_id":str(getattr(r,"pair_id","")),
+          "sample_role":str(getattr(r,"sample_role","UNSPECIFIED")),
           "date":r.date.strftime("%Y-%m-%d"),
           "p24_mm":mean.get("p24_mm"),
           "p7ante_mm":mean.get("p7ante_mm"),
@@ -130,7 +161,7 @@ def run_gee(project,manifest,description="FIG1_IMERG_V07_PILOT",submit=False,
     task=ee.batch.Export.table.toDrive(
          collection=ee.FeatureCollection(output),
          description=description,folder=drive_folder,fileFormat="CSV",
-         selectors=["pilot_id","grid_id","date","p24_mm","p7ante_mm",
+         selectors=["pilot_id","pair_id","sample_role","grid_id","date","p24_mm","p7ante_mm",
                     "n_imerg_24h","n_imerg_prior7d",
                     "soil_moisture_ante1d_m3m3","n_era5_ante1d","data_status"])
     task.start()
