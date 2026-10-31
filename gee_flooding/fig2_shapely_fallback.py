@@ -58,8 +58,8 @@ def read_cell(ds,poly,band,kind,classes,max_pixels=250000):
             if np.ma.is_masked(arr[rr,cc]):continue
             value=float(arr[rr,cc])
             if not np.isfinite(value):continue
-            left,top=transform*(cc,rr)
-            right,bottom=transform*(cc+1,rr+1)
+            left,top=transform @ (cc,rr)
+            right,bottom=transform @ (cc+1,rr+1)
             pixel=box(min(left,right),min(top,bottom),
                       max(left,right),max(top,bottom))
             if not prepared.intersects(pixel):continue
