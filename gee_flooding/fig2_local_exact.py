@@ -185,7 +185,7 @@ def combine_contributions(parts,grids,name,kind,min_coverage=0.95):
 
 
 def extract(root,grid_path,manifest,tag="fig2_local_exact_v1",
-            start_row=0,count=20,min_coverage=.95):
+            start_row=0,count=20,min_coverage=.95,backend="exactextract"):
     if not re.fullmatch(r"fig2_[A-Za-z0-9_-]+",tag):
         raise ValueError("Output tag must be fig2_* without separators")
     if not .5<=min_coverage<=1:raise ValueError("Expected 0.5<=min coverage<=1")
@@ -197,11 +197,16 @@ def extract(root,grid_path,manifest,tag="fig2_local_exact_v1",
     if len(set(i.get("name") for i in variables))!=len(variables):
         raise ValueError("Duplicate indicator declarations")
     for item in variables:validate_variable(item)
-    try:
-        from exactextract import exact_extract
-        from exactextract.raster import RasterioRasterSource
-    except ImportError as exc:
-        raise RuntimeError('Install local extraction dependencies: pip install ".[local]"') from exc
+    if backend not in ("exactextract","shapely"):
+        raise ValueError("Only audited exactextract or shapely backends are supported")
+    if backend=="exactextract":
+        try:
+            from exactextract import exact_extract
+            from exactextract.raster import RasterioRasterSource
+        except ImportError as exc:
+            raise RuntimeError('Install exactextract or use --backend shapely for audited equal-area source TIFFs') from exc
+    else:
+        from .fig2_shapely_fallback import extract_source
     import rasterio
     gf=selected_grid(grid_path,start_row,count)
     polygons=cell_polys(gf)
@@ -227,25 +232,28 @@ def extract(root,grid_path,manifest,tag="fig2_local_exact_v1",
                 band=int(spec.get("band",1))
                 if band>src.count:raise ValueError(name+": band exceeds raster count")
                 zones=polygons.to_crs(src.crs)
-                raster=RasterioRasterSource(src,band_idx=band,name=name)
-                ops=["count","sum","mean"]
-                if kind=="class_fraction":ops+=["unique","frac"]
-                frame=exact_extract(raster,zones,ops,include_cols=["grid_id"],
-                                    output="pandas",max_cells_in_memory=5_000_000)
-                if "grid_id" not in frame or "count" not in frame:
-                    raise ValueError(name+": exactextract returned unexpected schema")
-                if kind=="class_fraction":
-                    if not {"unique","frac"}.issubset(frame):
-                        raise ValueError("exactextract requires unique and frac arrays")
-                    classes=set(spec["classes"])
-                    def class_share(r):
-                        unique=np.atleast_1d(r["unique"])
-                        fraction=np.atleast_1d(r["frac"])
-                        if len(unique)!=len(fraction):
-                            raise ValueError("Categorical arrays have mismatched lengths")
-                        return float(sum(float(v) for k,v in zip(unique,fraction)
-                                         if not pd.isna(k) and int(k) in classes))
-                    frame["class_share"]=frame.apply(class_share,axis=1)
+                if backend=="shapely":
+                    frame=extract_source(src,gf,band,kind,spec.get("classes",[]))
+                else:
+                    raster=RasterioRasterSource(src,band_idx=band,name=name)
+                    ops=["count","sum","mean"]
+                    if kind=="class_fraction":ops+=["unique","frac"]
+                    frame=exact_extract(raster,zones,ops,include_cols=["grid_id"],
+                                        output="pandas",max_cells_in_memory=5_000_000)
+                    if "grid_id" not in frame or "count" not in frame:
+                        raise ValueError(name+": exactextract returned unexpected schema")
+                    if kind=="class_fraction":
+                        if not {"unique","frac"}.issubset(frame):
+                            raise ValueError("exactextract requires unique and frac arrays")
+                        classes=set(spec["classes"])
+                        def class_share(r):
+                            unique=np.atleast_1d(r["unique"])
+                            fraction=np.atleast_1d(r["frac"])
+                            if len(unique)!=len(fraction):
+                                raise ValueError("Categorical arrays have mismatched lengths")
+                            return float(sum(float(v) for k,v in zip(unique,fraction)
+                                             if not pd.isna(k) and int(k) in classes))
+                        frame["class_share"]=frame.apply(class_share,axis=1)
                 parts.append({"data":frame,"pixel_area":pixel_area})
                 details.append(dict(name=name,path=str(file),crs=str(src.crs),
                                     band=band,pixel_area_m2=pixel_area,
@@ -269,7 +277,7 @@ def extract(root,grid_path,manifest,tag="fig2_local_exact_v1",
     qc={"status":"LOCAL_EXACT_GF10_PARTIAL" if any(v["missing_cells"] for v in cover.values())
        else "LOCAL_EXACT_GF10_SCOPE_COMPLETE_NEEDS_SOURCE_AUDIT",
        "grid_cell_count":len(gf),"grid_crs":"EPSG:6933","cell_area_m2":AREA_M2,
-       "method":"exactextract_native_pixel_fraction_weighted",
+       "method":backend+"_native_pixel_fraction_weighted",
        "min_pixel_coverage":min_coverage,"indicator_coverage":cover,
        "raster_metadata":details,"physical_validation":False,
        "full_global_coverage":False,
@@ -287,9 +295,10 @@ def main(argv=None):
     p.add_argument("--start-row",type=int,default=0)
     p.add_argument("--count",type=int,default=20)
     p.add_argument("--min-coverage",type=float,default=.95)
+    p.add_argument("--backend",choices=["exactextract","shapely"],default="exactextract")
     a=p.parse_args(argv)
     print(json.dumps(extract(a.root,a.grid,a.manifest,a.tag,
-                             a.start_row,a.count,a.min_coverage),
+                             a.start_row,a.count,a.min_coverage,a.backend),
                      ensure_ascii=False,indent=2))
 
 if __name__=="__main__":main()
