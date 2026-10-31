@@ -190,7 +190,7 @@ def extract(root,grid_path,manifest,tag="fig2_local_exact_v1",
         raise ValueError("Output tag must be fig2_* without separators")
     if not .5<=min_coverage<=1:raise ValueError("Expected 0.5<=min coverage<=1")
     manifest=Path(manifest)
-    config=json.loads(manifest.read_text(encoding="utf-8"))
+    config=json.loads(manifest.read_text(encoding="utf-8-sig"))
     variables=config.get("variables")
     if not isinstance(variables,list) or not variables:
         raise ValueError("Manifest must contain variables list")
