@@ -281,3 +281,15 @@ def test_real_pilot_projection_ESRI_54009_shapely_and_exactextract(tmp_path):
     assert b.coverage_built_fraction_2020.min()>.98
     assert a.built_fraction_2020.tolist()==pytest.approx(
         b.built_fraction_2020.tolist(),abs=.001)
+
+
+def test_GISD30_dynamic_year_classes_are_not_raw_fraction(tmp_path):
+    from gee_flooding.fig2_local_exact import validate_variable
+    t=tmp_path/"GISD30_1985-2020.tif"
+    t.touch()
+    with pytest.raises(ValueError,match="kind must be exactly class_fraction"):
+        validate_variable({"name":"impervious_fraction","dataset":"GISD30_1985_2020",
+            "epoch":"2020","kind":"native_fraction","paths":[str(t)]})
+    validate_variable({"name":"impervious_fraction","dataset":"GISD30_1985_2020",
+        "epoch":"2020","kind":"class_fraction","classes":[1,2,3,4,5,6,7,8],
+        "paths":[str(t)]})
