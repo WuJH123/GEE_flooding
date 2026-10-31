@@ -125,6 +125,43 @@ def check_independent_built_area(local, exposure_dir):
                 max_relative_difference=float(relative.max()))
 
 
+def check_ghsl_growth_identity(local, static_dir):
+    """Check separately exported GEE historical share and growth against
+    locally measured 2020 built share (same JRC lineage, two pipelines).
+    """
+    if local is None or static_dir is None:
+        return {"status":"NO_HISTORICAL_SOURCE_CHECK"}
+    original=pd.read_parquet(local)
+    if not {"grid_id","built_fraction_2020"}<=set(original):
+        return {"status":"NO_LOCAL_2020_BASELINE"}
+    frames=[]
+    for path in sorted(Path(static_dir).glob("f2_static_*.csv")):
+        x=pd.read_csv(path)
+        req={"grid_id","built_fraction_2000","built_growth_2000_2020"}
+        if req.issubset(x):
+            frames.append(x[list(req)].copy())
+    if not frames:return {"status":"NO_GEE_2000_AND_GROWTH_CROSSCHECK"}
+    history=pd.concat(frames,ignore_index=True)
+    history.grid_id=history.grid_id.astype(str)
+    if history.grid_id.duplicated().any():
+        raise ValueError("Repeated historical growth/2000 GEE grid_id")
+    original.grid_id=original.grid_id.astype(str)
+    joined=original[["grid_id","built_fraction_2020"]].merge(
+        history,on="grid_id",validate="one_to_one")
+    if joined.empty:return {"status":"NO_OVERLAPPING_HISTORICAL_GRIDS"}
+    b00=_num(joined.built_fraction_2000,"built_fraction_2000")
+    grow=_num(joined.built_growth_2000_2020,"built_growth_2000_2020")
+    b20=_num(joined.built_fraction_2020,"built_fraction_2020")
+    delta=(b00+grow-b20).abs()
+    bad=delta>.03
+    return dict(status="FAILED_HISTORICAL_SHARE_IDENTITY" if bad.any()
+                else "HISTORICAL_SHARE_CROSSCHECK",
+                n_overlap=int(len(joined)),
+                n_flagged=int(bad.sum()),
+                max_fraction_difference=float(delta.max()),
+                tolerance_fraction=.03)
+
+
 def audit(root,plan_dir,static_dir=None,exposure_dir=None,local=None,
           tag="fig2_gee_postdownload_qc_v1",require_complete=False):
     plan=Path(plan_dir)
@@ -149,6 +186,14 @@ def audit(root,plan_dir,static_dir=None,exposure_dir=None,local=None,
     if shadow.get("status")=="FAILED_SOURCE_CONSERVATION":
         errors.append(dict(job_id="SOURCE_CONSERVATION",status="INVALID_EXPORT",
                            problem="GEE GHSL source area disagrees with independent local extraction"))
+    try:
+        growth=check_ghsl_growth_identity(local,static_dir)
+    except Exception as err:
+        growth=dict(status="INVALID_HISTORICAL_QC",problem=str(err))
+        errors.append(dict(job_id="HISTORICAL_GROWTH",status="INVALID_EXPORT",problem=str(err)))
+    if growth.get("status")=="FAILED_HISTORICAL_SHARE_IDENTITY":
+        errors.append(dict(job_id="HISTORICAL_GROWTH",status="INVALID_EXPORT",
+                           problem="GEE GHSL 2000 plus growth differs from local 2020 beyond tolerance"))
     out=safe_output(root,"reports/"+tag)
     if out.exists():raise FileExistsError(str(out))
     out.mkdir(parents=True,exist_ok=False)
@@ -159,6 +204,7 @@ def audit(root,plan_dir,static_dir=None,exposure_dir=None,local=None,
                 n_valid=sum(x["status"]=="CSV_AUDITED_SCHEMA_AND_RANGE" for x in records),
                 n_missing=len(missing),n_invalid=len(errors),
                 independent_JRC_math_check=shadow,
+                historical_GHSL_2000_2020_identity_check=growth,
                 dataset_value_validation="ranges and task coverage only; NOT external physical truth",
                 publication_ready=False)
     atomic_json(out/"fig2_gee_postdownload_qc.json",report)
