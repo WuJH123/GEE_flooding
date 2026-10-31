@@ -251,3 +251,28 @@ def test_gee_static_source_family_is_lazily_built():
     x=_static_image(EE(),["built_fraction_2020"])
     assert len(x)==1
     assert loaded==["JRC/GHSL/P2023A/GHS_BUILT_S/2020"]
+
+
+def test_real_pilot_projection_ESRI_54009_shapely_and_exactextract(tmp_path):
+    from gee_flooding import fig2_local_exact as exact
+    g=gf10(tmp_path)
+    p=tmp_path/"GHS_BUILT_S_ESRI54009_2020.tif"
+    arr=np.full((120,230),5000,dtype="float32")
+    with rasterio.open(p,"w",driver="GTiff",width=230,height=120,
+                       count=1,dtype="float32",crs="ESRI:54009",
+                       transform=from_origin(-500,11000,100,100),
+                       nodata=-9999) as dst:
+        dst.write(arr,1)
+    mf=tmp_path/"manifest.json"
+    mf.write_text(json.dumps({"variables":[{
+       "name":"built_fraction_2020","dataset":"GHSL_BUILT_S_R2023A",
+       "epoch":"2020","kind":"cell_sum","native_units":"m2_per_native_pixel",
+       "paths":[str(p)]}]}))
+    exact.extract(tmp_path,g,mf,tag="fig2_mollweide_shapely",count=2,backend="shapely")
+    exact.extract(tmp_path,g,mf,tag="fig2_mollweide_exact",count=2,backend="exactextract")
+    a=pd.read_parquet(tmp_path/"data"/"derived"/"fig2_mollweide_shapely"/"fig2_local_GF10_indicators.parquet")
+    b=pd.read_parquet(tmp_path/"data"/"derived"/"fig2_mollweide_exact"/"fig2_local_GF10_indicators.parquet")
+    assert a.coverage_built_fraction_2020.min()>.98
+    assert b.coverage_built_fraction_2020.min()>.98
+    assert a.built_fraction_2020.tolist()==pytest.approx(
+        b.built_fraction_2020.tolist(),abs=.001)
