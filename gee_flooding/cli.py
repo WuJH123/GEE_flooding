@@ -54,6 +54,10 @@ def parser():
     s.add_argument('--review-n',type=int,default=600)
     s.add_argument('--tag',default='fig1_v3')
     s.add_argument('--fast',action='store_true',help='1k grid-day GFID matching SMOKE ONLY; never publish')
+    s=commands.add_parser('fig1-review-audit',help='Human adjudication and incomplete-review gate')
+    s.add_argument('--queue',type=Path,required=True)
+    s.add_argument('--reviews',type=Path,required=True)
+    s.add_argument('--tag',default='fig1_review_r1')
     s=commands.add_parser('fig1-preflight',help='P0 metadata and source-ledger validation, no downloads')
     s.add_argument('--raw',type=Path,required=True)
     s.add_argument('--mapped',type=Path,required=True)
@@ -136,6 +140,9 @@ def main(argv=None):
                      physical=args.physical,tag=args.tag,
                      world=args.world,reviewer_table=args.reviewer_table,
                      review_n=args.review_n,fast=args.fast)
+    elif args.command=='fig1-review-audit':
+        from .fig1_review import summarize
+        result=summarize(root,args.queue,args.reviews,args.tag)
     elif args.command=='fig1-preflight':
         from .fig1_preflight import inspect
         result=inspect(root,args.raw,args.mapped,args.grid,args.city_file,
