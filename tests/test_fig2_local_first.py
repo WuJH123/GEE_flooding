@@ -233,6 +233,8 @@ def test_gee_static_source_family_is_lazily_built():
         def select(self,*args,**kwargs):return self
         def rename(self,*args,**kwargs):return self
         def reduceResolution(self,**kwargs):return self
+        def divide(self,*args,**kwargs):return self
+        def clamp(self,*args,**kwargs):return self
         def eq(self,*args,**kwargs):return self
     class Image:
         def __new__(cls,name):
