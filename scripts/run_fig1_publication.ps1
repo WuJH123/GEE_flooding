@@ -30,11 +30,11 @@ function Invoke-Py([string[]]$Arguments){
 }
 Set-Location $Root
 if(-not $SkipSmoke){
- Invoke-Py @("-m","pytest","-q","tests/test_fig1_publication.py")
+ Invoke-Py -Arguments @("-m","pytest","-q","tests/test_fig1_publication.py")
 }
-Invoke-Py @("-m","gee_flooding","--root",$Root,"fig1-spatial-frame",
+Invoke-Py -Arguments @("-m","gee_flooding","--root",$Root,"fig1-spatial-frame",
              "--core",$GRID,"--west",$West,"--east",$East,"--tag",$Tag)
-Invoke-Py @("-m","gee_flooding","--root",$Root,"fig1-tier-audit",
+Invoke-Py -Arguments @("-m","gee_flooding","--root",$Root,"fig1-tier-audit",
              "--raw",$Raw,"--primary",$LABEL,"--tag",$Tag)
 $cmd=@("-m","gee_flooding","--root",$Root,"fig1-paper","--tag",$Tag,
         "--spatial-dir",(Join-Path $base "grid"),
@@ -52,7 +52,7 @@ if($IndependentStormManifest){
  if(-not (Test-Path -LiteralPath $IndependentStormManifest)){throw "Independent storm manifest missing"}
  $cmd+=@("--independent-storm-manifest",$IndependentStormManifest)
 }
-Invoke-Py $cmd
+Invoke-Py -Arguments $cmd
 Get-Content (Join-Path $base "paper\figure1_publication_gate.json") -Raw
 Write-Host "Five-panel draft: $base\paper" -ForegroundColor Green
 Write-Warning "Figure1 is NOT publication-final unless all evidence gates have genuine external reviews."
