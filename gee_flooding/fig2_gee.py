@@ -147,11 +147,19 @@ def _weather_image(ee, day):
 
 
 def _exposure_image(ee):
+    # GHSL's counts and built m2 refer to an original 100m (=10000m2)
+    # equal-area grid cell. First form density/fraction, then re-integrate
+    # using output pixelArea after sampling in EPSG:4326. Summing raw source
+    # cell counts on a geographic output grid is NOT population-conserving.
+    area=ee.Image.pixelArea()
     b=ee.Image(PRODUCTS["ghsl_2020"])
+    pop=ee.Image(PRODUCTS["ghsl_pop_2020"]).select("population_count")
     return ee.Image.cat([
-        ee.Image(PRODUCTS["ghsl_pop_2020"]).select("population_count").rename("population_count_2020"),
-        b.select("built_surface").divide(1e6).rename("built_area_km2_2020"),
-        b.select("built_surface_nres").divide(1e6).rename("built_nres_area_km2_2020")
+        pop.divide(10000).multiply(area).rename("population_count_2020"),
+        b.select("built_surface").divide(10000).multiply(area).divide(1e6)
+          .rename("built_area_km2_2020"),
+        b.select("built_surface_nres").divide(10000).multiply(area).divide(1e6)
+          .rename("built_nres_area_km2_2020")
     ])
 
 
