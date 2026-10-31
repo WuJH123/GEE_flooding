@@ -32,8 +32,8 @@ def load_exports(directory, prefix):
         if "grid_id" not in x:
             raise ValueError("Missing grid_id in "+str(file))
         if prefix=="f2_weather_":
-            single=re.fullmatch(r"f2_weather_(\\d{8})_\\d{6}_\\d{6}\\.csv",file.name)
-            weekly=re.fullmatch(r"f2_weather_week_(\\d{8})_(\\d{2})_\\d{6}_\\d{6}\\.csv",file.name)
+            single=re.fullmatch(r"f2_weather_(\d{8})_\d{6}_\d{6}\.csv",file.name)
+            weekly=re.fullmatch(r"f2_weather_week_(\d{8})_(\d{2})_\d{6}_\d{6}\.csv",file.name)
             if single:
                 x["date"]=pd.to_datetime(single.group(1),format="%Y%m%d")
             elif weekly:
