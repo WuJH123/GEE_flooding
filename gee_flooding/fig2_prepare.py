@@ -32,10 +32,22 @@ def load_exports(directory, prefix):
         if "grid_id" not in x:
             raise ValueError("Missing grid_id in "+str(file))
         if prefix=="f2_weather_":
-            m=re.fullmatch(r"f2_weather_(\d{8})_\d{6}_\d{6}\.csv",file.name)
-            if not m:
+            single=re.fullmatch(r"f2_weather_(\d{8})_\d{6}_\d{6}\.csv",file.name)
+            weekly=re.fullmatch(r"f2_weather_week_(\d{8})_(\d{2})_\d{6}_\d{6}\.csv",file.name)
+            if single:
+                x["date"]=pd.to_datetime(single.group(1),format="%Y%m%d")
+            elif weekly:
+                if "date" not in x:raise ValueError("Weekly GEE CSV missing per-row UTC date")
+                first=pd.to_datetime(weekly.group(1),format="%Y%m%d")
+                days=int(weekly.group(2))
+                if not 1<=days<=7:
+                    raise ValueError("Invalid weekly weather export window")
+                parsed=pd.to_datetime(x.date,errors="raise").dt.normalize()
+                if not parsed.between(first,first+pd.Timedelta(days=days-1)).all():
+                    raise ValueError("Weekly task contains dates outside declared window")
+                x["date"]=parsed
+            else:
                 raise ValueError("Unrecognized UTC export filename: "+file.name)
-            x["date"]=pd.to_datetime(m.group(1),format="%Y%m%d")
         frames.append(x)
     return pd.concat(frames,ignore_index=True)
 
@@ -106,7 +118,7 @@ def weather_objects(df, p24_min=20.0, p3_min=10.0, radius_km=30):
 
 
 def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
-          start, end, start_row=0, count=50, p24_min=20, p3_min=10, radius_km=30, exposure_dir=None):
+          start, end, start_row=0, count=50, p24_min=20, p3_min=10, radius_km=30, exposure_dir=None, tag=None):
     grid=pd.read_parquet(grid_path)
     for col in ("grid_id","grid_x","grid_y","urban_fraction_2020"):
         if col not in grid:raise ValueError("GF10 reference missing "+col)
@@ -115,8 +127,13 @@ def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
     if len(grid)!=count:raise ValueError("Expected selected grid count not present")
     grid["grid_id"]=grid.grid_id.astype(str)
     dates=pd.date_range(start,end,freq="D")
-    if len(dates)==0 or dates.min()<pd.Timestamp("2021-01-01") or len(dates)>366:
-        raise ValueError("Use a non-empty <=366-day UTC interval from 2021 onward per batch")
+    if (len(dates)==0 or dates.min()<pd.Timestamp("2021-01-01")
+        or dates.max()>pd.Timestamp("2025-12-31") or len(dates)>1826):
+        raise ValueError("Figure2 publication scope requires 2021-2025 UTC dates")
+    if len(grid)>1000 or len(grid)*len(dates)>2_000_000:
+        raise ValueError("Memory-safety cap: split into <=2 million GF10 grid-days per job")
+    if tag is not None and (not re.fullmatch(r"fig2_[A-Za-z0-9_-]+",tag)):
+        raise ValueError("Versioned --tag must be fig2_* without path separators")
     city=pd.read_parquet(grid_cities,columns=["grid_id","city_id"])
     if city.grid_id.duplicated().any():raise ValueError("Duplicate UCDB grid crosswalk")
     city.grid_id=city.grid_id.astype(str)
@@ -124,6 +141,13 @@ def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
     if grid.city_id.isna().any():raise ValueError("Study subset includes GF10 cells not assigned to official UCDB cities")
     w=load_exports(weather_dir,"f2_weather_")
     s=load_exports(static_dir,"f2_static_")
+    # Multiple completed time/space batches can share one folder.
+    # Restrict to the PREDECLARED selection, then reject in-scope duplicates.
+    w["grid_id"]=w.grid_id.astype(str)
+    w["date"]=pd.to_datetime(w.date,errors="raise").dt.normalize()
+    s["grid_id"]=s.grid_id.astype(str)
+    w=w.loc[w.grid_id.isin(grid.grid_id)&w.date.isin(dates)].copy()
+    s=s.loc[s.grid_id.isin(grid.grid_id)].copy()
     # The frozen grid is authoritative; static exports copy urban share for audit.
     if "urban_fraction_2020" in s:
         reference=grid[["grid_id","urban_fraction_2020"]]
@@ -139,6 +163,7 @@ def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
     if exposure_dir is not None:
         exposure=load_exports(exposure_dir,"f2_exposure_")
         exposure["grid_id"]=exposure.grid_id.astype(str)
+        exposure=exposure.loc[exposure.grid_id.isin(grid.grid_id)].copy()
         required={"grid_id","population_count_2020","built_area_km2_2020",
                   "built_nres_area_km2_2020"}
         if required-set(exposure):raise ValueError("GHSL exposure columns missing")
@@ -193,12 +218,13 @@ def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
     if storms.empty:raise ValueError("No news-independent storm exposures")
     # Exact input required by the existing panel assembler. All weather reports
     # use UTC days. News reporting dates can differ from true event onsets.
-    output_weather=safe_output(root,"data/derived/storm_exposure_weather.parquet")
-    output_static=safe_output(root,"data/derived/static_grid_factors.parquet")
-    output_extended=safe_output(root,"data/derived/fig2_extended_grid_factors.parquet")
-    contract_path=safe_output(root,"data/derived/fig2_weather_provenance.json")
-    output_resilience=safe_output(root,"data/derived/fig2_resilience_all_static_GF10.parquet")
-    output_context=safe_output(root,"data/derived/fig2_ghsl_population_context_GF10.parquet")
+    base="data/derived/" if tag is None else "data/derived/"+tag+"/"
+    output_weather=safe_output(root,base+"storm_exposure_weather.parquet")
+    output_static=safe_output(root,base+"static_grid_factors.parquet")
+    output_extended=safe_output(root,base+"fig2_extended_grid_factors.parquet")
+    contract_path=safe_output(root,base+"fig2_weather_provenance.json")
+    output_resilience=safe_output(root,base+"fig2_resilience_all_static_GF10.parquet")
+    output_context=safe_output(root,base+"fig2_ghsl_population_context_GF10.parquet")
     generated=[output_weather,output_static,output_extended,contract_path,output_resilience]
     if exposure is not None:generated.append(output_context)
     for p in generated:
@@ -260,9 +286,10 @@ def main(argv=None):
     p.add_argument("--p24-min",type=float,default=20)
     p.add_argument("--p3-min",type=float,default=10)
     p.add_argument("--radius-km",type=float,default=30)
+    p.add_argument("--tag",help="Optional immutable versioned preparation folder fig2_*")
     a=p.parse_args(argv)
     print(json.dumps(build(a.root,a.grid,a.grid_cities,a.labels,a.weather_dir,a.static_dir,
-                           a.start,a.end,a.start_row,a.count,a.p24_min,a.p3_min,a.radius_km,a.exposure_dir),
+                           a.start,a.end,a.start_row,a.count,a.p24_min,a.p3_min,a.radius_km,a.exposure_dir,a.tag),
                      indent=2,ensure_ascii=False))
 
 

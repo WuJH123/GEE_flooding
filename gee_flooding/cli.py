@@ -28,6 +28,7 @@ def parser():
     s.add_argument('--weather',type=Path,required=True)
     s.add_argument('--static',type=Path,required=True)
     s.add_argument('--labels',type=Path,required=True)
+    s.add_argument('--tag',help='Optional fig2_* immutable panel version folder')
     s=commands.add_parser('fig1',help='GEE article Figure1: news coverage, city eligibility, source concordance; NO DOWNLOAD')
     s.add_argument('--grid',type=Path,required=True)
     s.add_argument('--labels',type=Path,required=True)
@@ -138,7 +139,7 @@ def main(argv=None):
         result=build_labels(root,args.raw,args.grid,args.grid_qc,args.batch_size,start=args.start,end=args.end)
     elif args.command=='panel':
         from .panel import assemble
-        result=assemble(root,args.weather,args.static,args.labels)
+        result=assemble(root,args.weather,args.static,args.labels,args.tag)
     elif args.command=='baseline':
         from .train import run
         result=run(root,args.panel,args.seed)

@@ -18,7 +18,7 @@ def rank(value,seed):
     return hashlib.sha256((str(seed)+"|"+str(value)).encode()).hexdigest()
 
 
-def sample(grid,crosswalk,city_meta,max_cities=40,cells_per_city=12,seed=42):
+def sample(grid,crosswalk,city_meta,max_cities=40,cells_per_city=12,seed=42,frozen_v3=None):
     if not 5<=max_cities<=500 or not 1<=cells_per_city<=100:
         raise ValueError("Restrict city count (5-500) and cells per city (1-100)")
     grid=pd.read_parquet(grid)
@@ -49,16 +49,42 @@ def sample(grid,crosswalk,city_meta,max_cities=40,cells_per_city=12,seed=42):
     eligible=linked[["city_id","continent","koppen_broad"]].drop_duplicates()
     eligible["stratum"]=eligible.continent.astype(str)+"|"+eligible.koppen_broad.astype(str)
     eligible["order"]=eligible.city_id.map(lambda s:rank(s,seed))
-    by_stratum={}
-    for stratum,part in eligible.groupby("stratum"):
-        by_stratum[stratum]=part.sort_values("order").city_id.tolist()
-    chosen=[]
-    # Round-robin climate/continent groups: no dependence on news outcomes.
-    while len(chosen)<max_cities and any(by_stratum.values()):
-        for name in sorted(by_stratum):
-            if by_stratum[name]:
-                chosen.append(by_stratum[name].pop(0))
-                if len(chosen)>=max_cities:break
+    if frozen_v3:
+        v3=pd.read_csv(frozen_v3)
+        required={"city_id","fig1_v3_status","eligible_using_only_development_years"}
+        if required-set(v3):
+            raise ValueError("Figure1 v3 must contain development-only split and eligibility")
+        v3["city_id"]=v3.city_id.astype(str)
+        if v3.city_id.duplicated().any():raise ValueError("Duplicate v3 official UCDB city")
+        eligible=eligible.merge(v3[list(required)],on="city_id",how="inner",
+                                validate="one_to_one")
+        iseligible=eligible.eligible_using_only_development_years.astype(str).str.lower().isin(
+            ["true","1"])
+        eligible=eligible.loc[iseligible & eligible.fig1_v3_status.isin(
+            ["TRAIN_CANDIDATE","HELDOUT_CITY_CANDIDATE"])].copy()
+    def round_robin(frame,limit):
+        by_stratum={}
+        for stratum,part in frame.groupby("stratum"):
+            by_stratum[stratum]=part.sort_values("order").city_id.tolist()
+        chosen=[]
+        while len(chosen)<limit and any(by_stratum.values()):
+            for name in sorted(by_stratum):
+                if by_stratum[name]:
+                    chosen.append(by_stratum[name].pop(0))
+                    if len(chosen)>=limit:break
+        return chosen
+    if frozen_v3:
+        n_held=max(2,round(.2*max_cities))
+        held=round_robin(eligible[eligible.fig1_v3_status.eq(
+            "HELDOUT_CITY_CANDIDATE")],n_held)
+        train=round_robin(eligible[eligible.fig1_v3_status.eq(
+            "TRAIN_CANDIDATE")],max_cities-n_held)
+        if len(held)<2 or len(train)<3:
+            raise ValueError("Too few frozen v3 train and heldout city candidates")
+        chosen=train+held
+    else:
+        train=held=[]
+        chosen=round_robin(eligible,max_cities)
     if len(chosen)<5:
         raise ValueError("Too few cities under observed climate/continent strata")
     rows=[]
@@ -72,7 +98,12 @@ def sample(grid,crosswalk,city_meta,max_cities=40,cells_per_city=12,seed=42):
     summary={"status":"STRATIFIED_GEOGRAPHIC_DESIGN_NOT_MODEL_EVIDENCE",
              "cities":len(chosen),"grid_cells":len(result),"seed":seed,
              "max_cities":max_cities,"cells_per_city":cells_per_city,
-             "independent_of_news_labels":True,
+             "independent_of_news_labels":frozen_v3 is None,
+             "independent_of_2024_2025_news":True,
+             "used_2021_2023_reporting_eligibility":bool(frozen_v3),
+             "frozen_train_cities":len(train),
+             "frozen_heldout_cities":len(held),
+             "frozen_v3_file":str(frozen_v3) if frozen_v3 else None,
              "source_grid_crs":"EPSG:6933","cell_size_m":10000,
              "antimeridian_excluded_grid_ids":skipped[:200],
              "antimeridian_excluded_count":len(skipped),
@@ -81,12 +112,12 @@ def sample(grid,crosswalk,city_meta,max_cities=40,cells_per_city=12,seed=42):
 
 
 def build(root,grid,crosswalk,cities,tag="fig2_subset_v2",
-          max_cities=40,cells_per_city=12,seed=42):
+          max_cities=40,cells_per_city=12,seed=42,frozen_v3=None):
     if not tag.startswith("fig2_") or "/" in tag or "\\" in tag:
         raise ValueError("Invalid version tag")
     out=safe_output(root,"data/reference/"+tag)
     if out.exists():raise FileExistsError("Sample already exists: "+str(out))
-    frame,qc=sample(grid,crosswalk,cities,max_cities,cells_per_city,seed)
+    frame,qc=sample(grid,crosswalk,cities,max_cities,cells_per_city,seed,frozen_v3)
     out.mkdir(parents=True,exist_ok=False)
     frame.to_parquet(out/"fig2_GF10_selected_grid.parquet",index=False)
     atomic_json(out/"fig2_GF10_sample_qc.json",qc)
@@ -102,10 +133,12 @@ def main(argv=None):
     p.add_argument("--max-cities",type=int,default=40)
     p.add_argument("--cells-per-city",type=int,default=12)
     p.add_argument("--seed",type=int,default=42)
+    p.add_argument("--city-audit-v3",type=Path,
+                   help="Frozen 2021-23 Figure1 v3 city assignment; sample BOTH train/heldout strata")
     p.add_argument("--tag",default="fig2_subset_v2")
     a=p.parse_args(argv)
     print(json.dumps(build(a.root,a.grid,a.crosswalk,a.cities,
-                           a.tag,a.max_cities,a.cells_per_city,a.seed),
+                           a.tag,a.max_cities,a.cells_per_city,a.seed,a.city_audit_v3),
                      ensure_ascii=False,indent=2))
 
 

@@ -3,13 +3,16 @@
 Unreported grid-storm days are UNLABELED (not confirmed non-flood).
 Never create the exposure universe by sampling only news observations.
 """
+import re
 import pandas as pd
 from .paths import safe_output,atomic_json
 
 WEATHER=['grid_id','date','storm_id','city_id','rain_24h_mm','rain_3h_mm','api_7d_mm']
 STATIC=['grid_id','hand_m','slope_deg','urban_fraction_2020','vegetation_fraction']
 
-def assemble(root,weather,static,labels):
+def assemble(root,weather,static,labels,tag=None):
+    if tag is not None and not re.fullmatch(r"fig2_[A-Za-z0-9_-]+",tag):
+        raise ValueError("Panel tag must be a single fig2_* version name")
     w=pd.read_parquet(weather);s=pd.read_parquet(static);l=pd.read_parquet(labels)
     for name,required,frame in [('weather',WEATHER,w),('static',STATIC,s),
                                 ('labels',['event_id','grid_id','date','geocode_quality'],l)]:
@@ -39,7 +42,8 @@ def assemble(root,weather,static,labels):
     for col in STATIC[1:]:
         if w[col].isna().any():raise ValueError('Missing static feature '+col)
     if not w.observed_news_onset.any():raise ValueError('No positive labels in complete weather exposure frame')
-    output=safe_output(root,'outputs/panels/storm_exposure_with_news_labels.parquet')
+    base="outputs/panels/" if tag is None else "outputs/panels/"+tag+"/"
+    output=safe_output(root,base+"storm_exposure_with_news_labels.parquet")
     output.parent.mkdir(parents=True,exist_ok=True)
     if output.exists():raise FileExistsError(output)
     w.to_parquet(output,index=False)
@@ -50,5 +54,6 @@ def assemble(root,weather,static,labels):
         'unmatched_high_specificity_report_grid_days':int(
             len(counts.index.difference(observed_keys))),
         'warning':'Unlabeled is NOT flood-free; labels are not true flood probabilities'}
-    atomic_json(safe_output(root,'reports/qc/panel_qc.json'),qc)
+    path="reports/qc/panel_qc.json" if tag is None else "reports/qc/"+tag+"/panel_qc.json"
+    atomic_json(safe_output(root,path),qc)
     return qc
