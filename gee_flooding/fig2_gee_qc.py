@@ -50,10 +50,10 @@ def validate_one(row, plan, static_dir, exposure_dir):
     grid=plan/row.grid_file
     if not grid.is_file():raise FileNotFoundError("Planned GF10 subset missing "+str(grid))
     expected=pd.read_parquet(grid)
-    mode=row["mode"]
-    bands=str(row["bands"]).split(",")
+    mode=row.mode
+    bands=str(row.bands).split(",")
     # Reuse the same deterministic identity as the actual export CLI.
-    task=launch(grid,0,int(row["n_grid"]),mode,None,
+    task=launch(grid,0,int(row.n_grid),mode,None,
                 "GEE_flooding_Figure2",bands=bands)
     name=task["description"]
     directory=static_dir if mode=="static" else exposure_dir
