@@ -92,38 +92,63 @@ def rectangles(ee, grid):
     return ee.FeatureCollection(features)
 
 
-def _static_image(ee):
-    h=ee.Image(PRODUCTS["merit"])
-    gh20=ee.Image(PRODUCTS["ghsl_2020"])
-    gh00=ee.Image(PRODUCTS["ghsl_2000"])
-    b20=gh20.select("built_surface").divide(10000).clamp(0,1)
-    b00=gh00.select("built_surface").divide(10000).clamp(0,1)
-    nres=gh20.select("built_surface_nres").divide(10000).clamp(0,1)
-    lc=ee.ImageCollection(PRODUCTS["worldcover"]).first().select("Map")
-    # WorldCover 10m -> coarse regional means via area-weighted aggregation,
-    # not nearest-neighbour sampling of categorical classes.
-    def share(classes, name):
-        flag=lc.remap(classes,[1]*len(classes),0).rename(name)
-        return flag.reduceResolution(reducer=ee.Reducer.mean(),maxPixels=1024)
-    # Other 90/100m rasters also use mean aggregation before 200m reduction.
+def _static_image(ee,bands=None):
+    """Construct ONLY requested source-family bands (avoid all-layer evaluation)."""
+    wanted=list(bands or GEE_STATIC)
+    if not wanted or len(set(wanted))!=len(wanted) or set(wanted)-set(GEE_STATIC):
+        raise ValueError("Unknown or duplicate static indicator selection")
+    output={}
     def down(image):
         return image.reduceResolution(reducer=ee.Reducer.mean(),maxPixels=1024)
-    return ee.Image.cat([
-        down(h.select("hnd").rename("hand_m")),
-        down(h.select("elv").rename("elevation_m")),
-        down(ee.Terrain.slope(h.select("elv")).rename("slope_deg")),
-        down(h.select("upa").rename("upstream_area_km2")),
-        down(h.select("wat").eq(1).rename("river_water_fraction")),
-        share([10,20,30,40,90,95],"vegetation_fraction"),
-        share([10],"tree_fraction"), share([30],"grass_fraction"),
-        share([40],"cropland_fraction"),share([90,95],"wetland_fraction"),
-        share([80],"water_fraction"),share([60],"bare_fraction"),
-        down(b20.rename("built_fraction_2020")),
-        down(nres.rename("built_nres_fraction_2020")),
-        down(b20.focal_mean(radius=1500,units="meters").rename("built_neighbor_density")),
-        down(b20.focal_std(radius=1000,units="meters").rename("built_fragmentation")),
-        down(b20.subtract(b00).rename("built_growth_2000_2020")),
-    ])
+    merit={"hand_m":"hnd","elevation_m":"elv",
+           "upstream_area_km2":"upa"}
+    merit_bands=set(merit)|{"slope_deg","river_water_fraction"}
+    if set(wanted)&merit_bands:
+        h=ee.Image(PRODUCTS["merit"])
+        for b,src in merit.items():
+            if b in wanted:output[b]=down(h.select(src).rename(b))
+        if "slope_deg" in wanted:
+            output["slope_deg"]=down(ee.Terrain.slope(
+                h.select("elv")).rename("slope_deg"))
+        if "river_water_fraction" in wanted:
+            output["river_water_fraction"]=down(
+                h.select("wat").eq(1).rename("river_water_fraction"))
+    lc_classes={"vegetation_fraction":[10,20,30,40,90,95],
+                "tree_fraction":[10],"grass_fraction":[30],
+                "cropland_fraction":[40],"wetland_fraction":[90,95],
+                "water_fraction":[80],"bare_fraction":[60]}
+    if set(wanted)&set(lc_classes):
+        lc=ee.ImageCollection(PRODUCTS["worldcover"]).first().select("Map")
+        for b,classes in lc_classes.items():
+            if b in wanted:
+                flag=lc.remap(classes,[1]*len(classes),0).rename(b)
+                output[b]=down(flag)
+    built={"built_fraction_2020","built_nres_fraction_2020",
+           "built_neighbor_density","built_fragmentation",
+           "built_growth_2000_2020"}
+    if set(wanted)&built:
+        gh20=ee.Image(PRODUCTS["ghsl_2020"])
+        b20=gh20.select("built_surface").divide(10000).clamp(0,1)
+        if "built_fraction_2020" in wanted:
+            output["built_fraction_2020"]=down(b20.rename("built_fraction_2020"))
+        if "built_nres_fraction_2020" in wanted:
+            output["built_nres_fraction_2020"]=down(
+                gh20.select("built_surface_nres").divide(10000).clamp(0,1)
+                .rename("built_nres_fraction_2020"))
+        if "built_neighbor_density" in wanted:
+            output["built_neighbor_density"]=down(
+                b20.focal_mean(radius=1500,units="meters")
+                .rename("built_neighbor_density"))
+        if "built_fragmentation" in wanted:
+            output["built_fragmentation"]=down(
+                b20.focal_std(radius=1000,units="meters")
+                .rename("built_fragmentation"))
+        if "built_growth_2000_2020" in wanted:
+            b00=ee.Image(PRODUCTS["ghsl_2000"]).select(
+                "built_surface").divide(10000).clamp(0,1)
+            output["built_growth_2000_2020"]=down(
+                b20.subtract(b00).rename("built_growth_2000_2020"))
+    return ee.Image.cat([output[name] for name in wanted])
 
 
 def _weather_image(ee, day):
@@ -252,7 +277,7 @@ def launch(grid,start_row,count,mode,day,folder,submit=False,
         reducer=ee.Reducer.mean()
     elif mode=="static":
         requested=bands or GEE_STATIC
-        image=_static_image(ee).select(requested)
+        image=_static_image(ee,requested)
         selectors=["grid_id","urban_fraction_2020"]+requested
         reducer=ee.Reducer.mean()
     elif mode=="exposure":

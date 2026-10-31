@@ -24,7 +24,7 @@ FAMILIES = {
  "merit_hand": (r"MERIT|HAND|相对高程", r".", "sensitivity", "MERIT/Hydro/v1_0_1"),
  "merit_upa": (r"MERIT|HydroATLAS|汇流面积", r".", "sensitivity", "MERIT/Hydro/v1_0_1"),
  "dem_elevation": (r"DEM|高程|elv", r".", "sensitivity", "MERIT/Hydro/v1_0_1"),
- "gaia_impervious_2020": (r"GAIA|GISD30|不透水", r"2020|2019", "sensitivity", "GEE / local version-verified"),
+ "impervious_dynamic_candidate": (r"GAIA|GISD30|不透水", r"2020|2019", "sensitivity", "LOCALLY_RECODE_GISD30_OR_AUDIT_OTHER_SOURCE"),
  "landcover_2021": (r"WorldCover|ESA[_ -]?WC|2021.*土地覆盖", r"2021|v200", "adaptation_proxy", "ESA/WorldCover/v200"),
  "landcover_2020": (r"土地利用|land.?cover|land.?use|EULUC", r"2020", "adaptation_proxy", "ESA/WorldCover/v200 (not same class legend)"),
  "roads": (r"GRIP|道路|HydroRIVERS", r".", "adaptation_proxy", "Local spatial vector processing"),
@@ -108,6 +108,9 @@ def triage(index,root,tag="fig2_local_candidates_v1",max_per_family=100):
                      gee_fallback=fallback,metadata_checked=False,
                      recommended_action="VERIFY_SOURCE_YEAR_BAND_UNITS",
                      pixel_size_m_verified=False)
+            if "gisd30" in str(p).lower():
+                row["dynamic_categories"]="0 pervious; 1 pre-1985; 2..8 expansion epochs; 2020 impervious mask values 1..8"
+                row["must_recode_before_aggregation"]=True
             if ext in ARCHIVE_EXT:
                 row["recommended_action"]="ARCHIVE_INSPECT_CONTENTS_NO_EXTRACTION"
             elif ext in RASTER_EXT and p.is_file():

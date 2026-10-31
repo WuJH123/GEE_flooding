@@ -80,7 +80,8 @@ def test_local_first_reconciles_and_refuses_same_source_conflicts(tmp_path):
                   "built_fraction_2020":[.5,np.nan],
                   "hand_m":[3.,4.]}).to_parquet(local,index=False)
     (folder/"fig2_local_exact_qc.json").write_text(json.dumps({
-        "method":"exactextract_native_pixel_fraction_weighted"}))
+        "method":"exactextract_native_pixel_fraction_weighted",
+        "grid_crs":"EPSG:6933"}))
     gee=tmp_path/"static"
     gee.mkdir()
     pd.DataFrame({"grid_id":["0_0","1_0"],
@@ -172,3 +173,123 @@ def test_only_requested_gee_bands_and_mismatched_duplicate_rows(tmp_path):
         folder/"f2_static_2021_000000_000000_bccc.csv",index=False)
     with pytest.raises(ValueError,match="Conflicting"):
         combine._load_gee(folder,"f2_static_")
+
+
+def test_shapely_fallback_equal_area_matches_exactextract(tmp_path):
+    from gee_flooding import fig2_local_exact as exact
+    g=gf10(tmp_path)
+    a=np.concatenate([np.full((100,100),5000,dtype="float32"),
+                      np.full((100,100),2000,dtype="float32")],axis=1)
+    p=raster(tmp_path/"GHS_BUILT_S_2020.tif",a)
+    spec=tmp_path/"sources.json"
+    spec.write_text(json.dumps({"variables":[{
+        "name":"built_fraction_2020","dataset":"GHSL_BUILT_S_R2023A",
+        "epoch":"2020","kind":"cell_sum","native_units":"m2_per_native_pixel",
+        "paths":[str(p)]}]}),encoding="utf-8")
+    qc=exact.extract(tmp_path,g,spec,tag="fig2_shapely_qa",count=2,
+                     backend="shapely")
+    assert qc["method"]=="shapely_native_pixel_fraction_weighted"
+    df=pd.read_parquet(tmp_path/"data"/"derived"/"fig2_shapely_qa"/"fig2_local_GF10_indicators.parquet")
+    assert df.built_fraction_2020.tolist()==pytest.approx([.5,.2],abs=.0001)
+    assert df.coverage_built_fraction_2020.min()>.999
+    # same frozen input, independent exactextract implementation
+    other=exact.extract(tmp_path,g,spec,tag="fig2_cpp_qa",count=2,
+                        backend="exactextract")
+    d2=pd.read_parquet(tmp_path/"data"/"derived"/"fig2_cpp_qa"/"fig2_local_GF10_indicators.parquet")
+    assert df.built_fraction_2020.tolist()==pytest.approx(
+        d2.built_fraction_2020.tolist(),abs=.0001)
+
+
+def test_missing_GEE_task_planner_respects_original_ids_and_source_groups(tmp_path):
+    from gee_flooding import fig2_backfill_plan
+    g=gf10(tmp_path)
+    p=tmp_path/"merged.parquet"
+    pd.DataFrame({"grid_id":["0_0","1_0"],
+                  "built_fraction_2020":[.5,np.nan],
+                  "hand_m":[np.nan,np.nan],
+                  "population_count_2020":[np.nan,np.nan]}).to_parquet(p,index=False)
+    qc=fig2_backfill_plan.plan(tmp_path,g,p,tag="fig2_missing_task_fixture",
+                              max_cells=1)
+    assert qc["n_planned_jobs"]>=3
+    assert qc["remote_submissions"]==0
+    out=tmp_path/"data"/"reference"/"fig2_missing_task_fixture"
+    tasks=pd.read_csv(out/"fig2_gee_backfill_tasks.csv")
+    assert tasks.n_grid.max()==1
+    assert set(tasks.source_family)=={"merit","landcover","builtform","population"}
+    assert tasks.loc[tasks.bands.str.split(",").apply(
+        lambda bands:"built_fraction_2020" in bands),"n_grid"].sum()==1
+    for row in tasks.itertuples(index=False):
+        src=pd.read_parquet(out/row.grid_file)
+        assert len(src)==row.n_grid
+        assert set(src.grid_id)<=set(pd.read_parquet(g).grid_id)
+    with pytest.raises(FileExistsError):
+        fig2_backfill_plan.plan(tmp_path,g,p,tag="fig2_missing_task_fixture")
+
+
+def test_gee_static_source_family_is_lazily_built():
+    from gee_flooding.fig2_gee import _static_image
+    loaded=[]
+    class Fake:
+        def select(self,*args,**kwargs):return self
+        def rename(self,*args,**kwargs):return self
+        def reduceResolution(self,**kwargs):return self
+        def divide(self,*args,**kwargs):return self
+        def clamp(self,*args,**kwargs):return self
+        def eq(self,*args,**kwargs):return self
+    class Image:
+        def __new__(cls,name):
+            loaded.append(name)
+            return Fake()
+        @staticmethod
+        def cat(items):return items
+    class Reducer:
+        @staticmethod
+        def mean():return "mean"
+    class EE:
+        pass
+    EE.Reducer=Reducer
+    EE.Image=Image
+    x=_static_image(EE(),["hand_m"])
+    assert len(x)==1
+    assert loaded==["MERIT/Hydro/v1_0_1"]
+    loaded.clear()
+    x=_static_image(EE(),["built_fraction_2020"])
+    assert len(x)==1
+    assert loaded==["JRC/GHSL/P2023A/GHS_BUILT_S/2020"]
+
+
+def test_real_pilot_projection_ESRI_54009_shapely_and_exactextract(tmp_path):
+    from gee_flooding import fig2_local_exact as exact
+    g=gf10(tmp_path)
+    p=tmp_path/"GHS_BUILT_S_ESRI54009_2020.tif"
+    arr=np.full((120,230),5000,dtype="float32")
+    with rasterio.open(p,"w",driver="GTiff",width=230,height=120,
+                       count=1,dtype="float32",crs="ESRI:54009",
+                       transform=from_origin(-500,11000,100,100),
+                       nodata=-9999) as dst:
+        dst.write(arr,1)
+    mf=tmp_path/"manifest.json"
+    mf.write_text(json.dumps({"variables":[{
+       "name":"built_fraction_2020","dataset":"GHSL_BUILT_S_R2023A",
+       "epoch":"2020","kind":"cell_sum","native_units":"m2_per_native_pixel",
+       "paths":[str(p)]}]}))
+    exact.extract(tmp_path,g,mf,tag="fig2_mollweide_shapely",count=2,backend="shapely")
+    exact.extract(tmp_path,g,mf,tag="fig2_mollweide_exact",count=2,backend="exactextract")
+    a=pd.read_parquet(tmp_path/"data"/"derived"/"fig2_mollweide_shapely"/"fig2_local_GF10_indicators.parquet")
+    b=pd.read_parquet(tmp_path/"data"/"derived"/"fig2_mollweide_exact"/"fig2_local_GF10_indicators.parquet")
+    assert a.coverage_built_fraction_2020.min()>.98
+    assert b.coverage_built_fraction_2020.min()>.98
+    assert a.built_fraction_2020.tolist()==pytest.approx(
+        b.built_fraction_2020.tolist(),abs=.001)
+
+
+def test_GISD30_dynamic_year_classes_are_not_raw_fraction(tmp_path):
+    from gee_flooding.fig2_local_exact import validate_variable
+    t=tmp_path/"GISD30_1985-2020.tif"
+    t.touch()
+    with pytest.raises(ValueError,match="kind must be exactly class_fraction"):
+        validate_variable({"name":"impervious_fraction","dataset":"GISD30_1985_2020",
+            "epoch":"2020","kind":"native_fraction","paths":[str(t)]})
+    validate_variable({"name":"impervious_fraction","dataset":"GISD30_1985_2020",
+        "epoch":"2020","kind":"class_fraction","classes":[1,2,3,4,5,6,7,8],
+        "paths":[str(t)]})

@@ -118,7 +118,7 @@ def weather_objects(df, p24_min=20.0, p3_min=10.0, radius_km=30):
 
 
 def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
-          start, end, start_row=0, count=50, p24_min=20, p3_min=10, radius_km=30, exposure_dir=None, tag=None):
+          start, end, start_row=0, count=50, p24_min=20, p3_min=10, radius_km=30, exposure_dir=None, tag=None, static_parquet=None):
     grid=pd.read_parquet(grid_path)
     for col in ("grid_id","grid_x","grid_y","urban_fraction_2020"):
         if col not in grid:raise ValueError("GF10 reference missing "+col)
@@ -140,7 +140,21 @@ def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
     grid=grid.merge(city,on="grid_id",how="left",validate="one_to_one")
     if grid.city_id.isna().any():raise ValueError("Study subset includes GF10 cells not assigned to official UCDB cities")
     w=load_exports(weather_dir,"f2_weather_")
-    s=load_exports(static_dir,"f2_static_")
+    if static_parquet is not None:
+        source=Path(static_parquet)
+        audit=source.parent/"fig2_GF10_indicator_merge_qc.json"
+        if not audit.is_file():
+            raise ValueError("Local-first static Parquet requires audited GF10 indicator merge QC")
+        metadata=json.loads(audit.read_text(encoding="utf-8"))
+        if metadata.get("frozen_grid_count")!=len(grid):
+            raise ValueError("Merged local-first static GF10 count differs from selected grid")
+        if metadata.get("n_conflicts",0):
+            raise ValueError("Unresolved local/GEE indicator source conflicts before modeling")
+        s=pd.read_parquet(source)
+    else:
+        if static_dir is None:
+            raise ValueError("Pass either --static-parquet or --static-dir")
+        s=load_exports(static_dir,"f2_static_")
     # Multiple completed time/space batches can share one folder.
     # Restrict to the PREDECLARED selection, then reject in-scope duplicates.
     w["grid_id"]=w.grid_id.astype(str)
@@ -160,6 +174,16 @@ def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
             raise ValueError("GEE urban share conflicts with frozen GF10 reference")
         s=s.drop(columns=["urban_fraction_2020"])
     exposure=None
+    if static_parquet is not None and exposure_dir is None:
+        context={"population_count_2020","built_area_km2_2020",
+                 "built_nres_area_km2_2020"}
+        if context.issubset(s):
+            candidate=s[["grid_id"]+sorted(context)].copy()
+            for key in context:
+                candidate[key]=pd.to_numeric(candidate[key],errors="coerce")
+            if all(np.isfinite(candidate[key]).all() and candidate[key].ge(0).all()
+                   for key in context):
+                exposure=candidate
     if exposure_dir is not None:
         exposure=load_exports(exposure_dir,"f2_exposure_")
         exposure["grid_id"]=exposure.grid_id.astype(str)
@@ -265,6 +289,7 @@ def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
        "ghsl_exposure_context_available":exposure is not None,
        "era5_daily_indicators":extras,
        "gee_sampling_crs":"EPSG:4326",
+       "static_source":"AUDITED_LOCAL_FIRST_GF10" if static_parquet else "GEE_CSV_TABLE",
        "population_context_caveat":"GHSL 100m population and built-surface sums require source-projection conservation QC"}
     atomic_json(contract_path,c)
     return c
@@ -277,7 +302,9 @@ def main(argv=None):
     p.add_argument("--grid-cities",type=Path,required=True)
     p.add_argument("--labels",type=Path,help="Reserved: labels never used to define storms")
     p.add_argument("--weather-dir",type=Path,required=True)
-    p.add_argument("--static-dir",type=Path,required=True)
+    p.add_argument("--static-dir",type=Path,help="Completed GEE static exports, alternative to --static-parquet")
+    p.add_argument("--static-parquet",type=Path,
+                   help="Audited fig2_indicators GF10 static wide table, avoiding duplicate GEE extraction")
     p.add_argument("--exposure-dir",type=Path,help="Optional completed GHSL GHS_POP context CSVs")
     p.add_argument("--start",required=True,help="First inclusive UTC date")
     p.add_argument("--end",required=True,help="Last inclusive UTC date")
@@ -289,7 +316,7 @@ def main(argv=None):
     p.add_argument("--tag",help="Optional immutable versioned preparation folder fig2_*")
     a=p.parse_args(argv)
     print(json.dumps(build(a.root,a.grid,a.grid_cities,a.labels,a.weather_dir,a.static_dir,
-                           a.start,a.end,a.start_row,a.count,a.p24_min,a.p3_min,a.radius_km,a.exposure_dir,a.tag),
+                           a.start,a.end,a.start_row,a.count,a.p24_min,a.p3_min,a.radius_km,a.exposure_dir,a.tag,a.static_parquet),
                      indent=2,ensure_ascii=False))
 
 
