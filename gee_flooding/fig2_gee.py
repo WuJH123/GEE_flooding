@@ -29,7 +29,7 @@ STATIC = [
     "river_water_fraction", "urban_fraction_2020", "vegetation_fraction",
     "tree_fraction", "grass_fraction", "cropland_fraction",
     "wetland_fraction", "water_fraction", "bare_fraction",
-    "built_fraction_2020", "built_nres_fraction_2020",
+    "built_fraction_2020", "built_fraction_2000", "built_nres_fraction_2020",
     "built_neighbor_density", "built_fragmentation",
     "built_growth_2000_2020",
 ]
@@ -123,7 +123,7 @@ def _static_image(ee,bands=None):
             if b in wanted:
                 flag=lc.remap(classes,[1]*len(classes),0).rename(b)
                 output[b]=down(flag)
-    built={"built_fraction_2020","built_nres_fraction_2020",
+    built={"built_fraction_2020","built_fraction_2000","built_nres_fraction_2020",
            "built_neighbor_density","built_fragmentation",
            "built_growth_2000_2020"}
     if set(wanted)&built:
@@ -143,11 +143,15 @@ def _static_image(ee,bands=None):
             output["built_fragmentation"]=down(
                 b20.focal_std(radius=1000,units="meters")
                 .rename("built_fragmentation"))
-        if "built_growth_2000_2020" in wanted:
+        if {"built_fraction_2000","built_growth_2000_2020"}&set(wanted):
             b00=ee.Image(PRODUCTS["ghsl_2000"]).select(
                 "built_surface").divide(10000).clamp(0,1)
-            output["built_growth_2000_2020"]=down(
-                b20.subtract(b00).rename("built_growth_2000_2020"))
+            if "built_fraction_2000" in wanted:
+                output["built_fraction_2000"]=down(
+                    b00.rename("built_fraction_2000"))
+            if "built_growth_2000_2020" in wanted:
+                output["built_growth_2000_2020"]=down(
+                    b20.subtract(b00).rename("built_growth_2000_2020"))
     return ee.Image.cat([output[name] for name in wanted])
 
 
