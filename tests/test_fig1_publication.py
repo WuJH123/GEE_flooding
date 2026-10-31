@@ -98,3 +98,58 @@ def test_no_external_physical_or_storm_proxy_inference(tmp_path):
         "spatial_temporal_tier":["A"]})
     out,_,_=city_attributes(c,x,t)
     assert out.prediction_validated.eq(False).all()
+
+
+def test_five_panel_paper_release_draft_and_fail_closed_gates(tmp_path):
+    from gee_flooding.fig1_publication import run
+    framepath=tmp_path/"grid";framepath.mkdir()
+    frame=pd.DataFrame({
+       "grid_id":["1_2","2_2","3_2"],
+       "longitude":[20.,21.,22.],"latitude":[10.,11.,12.],
+       "domain":["GF10_2020_URBAN_CORE","GF10_2020_URBAN_CORE","PERIPHERY_10KM_RING"]})
+    frame.to_parquet(framepath/"gf10_core_periphery_2020.parquet",index=False)
+    (framepath/"spatial_frame_qc.json").write_text(json.dumps({
+        "status":"PASS_FROZEN_SPATIAL_LATTICE","urban_core_cells":2,"valid_one_cell_periphery":1
+    }),encoding="utf-8")
+    tierspath=tmp_path/"tiers";tierspath.mkdir()
+    tier=pd.DataFrame([
+        ("a","1_2","2022-03-12","A"),
+        ("b","1_2","2022-03-12","B"),
+        ("c","2_2","2023-08-12","C")
+    ],columns=["event_id","grid_id","date","spatial_temporal_tier"])
+    tier.to_parquet(tierspath/"raw_uuid_tiers.parquet",index=False)
+    days=pd.DataFrame({
+        "grid_id":["1_2","2_2"],"date":["2022-03-12","2023-08-12"],
+        "raw_uuid_count":[2,1]})
+    days.to_parquet(tierspath/"grid_day_observations.parquet",index=False)
+    pd.DataFrame({"grid_candidate_episode":["1_2|1","2_2|2"]}).to_parquet(
+        tierspath/"candidate_grid_episodes.parquet",index=False)
+    (tierspath/"label_tier_qc.json").write_text(json.dumps({
+        "status":"PASS_NEWS_UNITS_AUDIT","raw_source_rows":4,
+        "matched_unique_uuids":3,"tier_counts":{"A":1,"B":1,"C":1}
+    }),encoding="utf-8")
+    city=pd.DataFrame({
+        "city_id":["A","B"],"country":["X","Y"],"continent":["Asia","Africa"],
+        "koppen_broad":["Tropical","Arid"],"lon":[20.,21.],"lat":[10.,11.],
+        "fig1_v3_status":["TRAIN_CANDIDATE","EVIDENCE_SPARSE"],
+        "eligible_using_only_development_years":[True,False]})
+    city.to_csv(tmp_path/"cities.csv",index=False)
+    pd.DataFrame({"grid_id":["1_2","2_2"],"city_id":["A","B"]}).to_parquet(
+        tmp_path/"cross.parquet",index=False)
+    (tmp_path/"v3.json").write_text(json.dumps({
+        "gfid_audit":{"raw_rows":136642,"accepted_rows":79277},
+        "sensitivity_is_full_data":True
+    }),encoding="utf-8")
+    output=run(tmp_path,"fig1_publication_synthetic",framepath,tierspath,
+               tmp_path/"cities.csv",tmp_path/"cross.parquet",tmp_path/"v3.json")
+    assert output["raw_report_uuids"]==4
+    assert output["mapped_uuids"]==3
+    assert output["distinct_grid_days"]==2
+    assert output["independent_rain_storms"]["n_storms"] is None
+    assert output["hard_gates"]["INDEPENDENT_PHYSICAL_EVENT_EVIDENCE"] is False
+    assert "POPULATION_STRATA_MISSING" in output["status"]
+    out=tmp_path/"outputs/fig1_publication_synthetic/paper"
+    for name in ["Figure1_publication_draft.pdf","Figure1_publication_draft.png",
+                 "Figure1_publication_draft.svg","coverage_by_country.csv",
+                 "annual_ABC_news_coverage.csv","figure1_publication_gate.json"]:
+        assert (out/name).exists(),name
