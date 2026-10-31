@@ -32,10 +32,22 @@ def load_exports(directory, prefix):
         if "grid_id" not in x:
             raise ValueError("Missing grid_id in "+str(file))
         if prefix=="f2_weather_":
-            m=re.fullmatch(r"f2_weather_(\d{8})_\d{6}_\d{6}\.csv",file.name)
-            if not m:
+            single=re.fullmatch(r"f2_weather_(\\d{8})_\\d{6}_\\d{6}\\.csv",file.name)
+            weekly=re.fullmatch(r"f2_weather_week_(\\d{8})_(\\d{2})_\\d{6}_\\d{6}\\.csv",file.name)
+            if single:
+                x["date"]=pd.to_datetime(single.group(1),format="%Y%m%d")
+            elif weekly:
+                if "date" not in x:raise ValueError("Weekly GEE CSV missing per-row UTC date")
+                first=pd.to_datetime(weekly.group(1),format="%Y%m%d")
+                days=int(weekly.group(2))
+                if not 1<=days<=7:
+                    raise ValueError("Invalid weekly weather export window")
+                parsed=pd.to_datetime(x.date,errors="raise").dt.normalize()
+                if not parsed.between(first,first+pd.Timedelta(days=days-1)).all():
+                    raise ValueError("Weekly task contains dates outside declared window")
+                x["date"]=parsed
+            else:
                 raise ValueError("Unrecognized UTC export filename: "+file.name)
-            x["date"]=pd.to_datetime(m.group(1),format="%Y%m%d")
         frames.append(x)
     return pd.concat(frames,ignore_index=True)
 
@@ -124,6 +136,13 @@ def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
     if grid.city_id.isna().any():raise ValueError("Study subset includes GF10 cells not assigned to official UCDB cities")
     w=load_exports(weather_dir,"f2_weather_")
     s=load_exports(static_dir,"f2_static_")
+    # Multiple completed time/space batches can share one folder.
+    # Restrict to the PREDECLARED selection, then reject in-scope duplicates.
+    w["grid_id"]=w.grid_id.astype(str)
+    w["date"]=pd.to_datetime(w.date,errors="raise").dt.normalize()
+    s["grid_id"]=s.grid_id.astype(str)
+    w=w.loc[w.grid_id.isin(grid.grid_id)&w.date.isin(dates)].copy()
+    s=s.loc[s.grid_id.isin(grid.grid_id)].copy()
     # The frozen grid is authoritative; static exports copy urban share for audit.
     if "urban_fraction_2020" in s:
         reference=grid[["grid_id","urban_fraction_2020"]]
@@ -139,6 +158,7 @@ def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
     if exposure_dir is not None:
         exposure=load_exports(exposure_dir,"f2_exposure_")
         exposure["grid_id"]=exposure.grid_id.astype(str)
+        exposure=exposure.loc[exposure.grid_id.isin(grid.grid_id)].copy()
         required={"grid_id","population_count_2020","built_area_km2_2020",
                   "built_nres_area_km2_2020"}
         if required-set(exposure):raise ValueError("GHSL exposure columns missing")
