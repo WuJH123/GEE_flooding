@@ -135,3 +135,40 @@ def test_categorical_pixel_fractions_use_original_class_values(tmp_path):
     exact.extract(tmp_path,g,manifest,tag="fig2_cover_fixture",count=2)
     df=pd.read_parquet(tmp_path/"data"/"derived"/"fig2_cover_fixture"/"fig2_local_GF10_indicators.parquet")
     assert df.tree_fraction.tolist()==pytest.approx([.5,0.0],abs=.001)
+
+def test_only_missing_indicator_cells_are_targeted_for_gee(tmp_path):
+    from gee_flooding import fig2_gap_grid
+    grid=gf10(tmp_path)
+    t=tmp_path/"integrated.parquet"
+    pd.DataFrame({"grid_id":["0_0","1_0"],"hand_m":[1.5,np.nan]}).to_parquet(t,index=False)
+    q=fig2_gap_grid.make(tmp_path,grid,t,"hand_m","fig2_missing_hand_fixture")
+    assert q["missing_GF10_count"]==1
+    out=pd.read_parquet(tmp_path/"data"/"reference"/"fig2_missing_hand_fixture"/"fig2_GF10_missing_grid.parquet")
+    assert out.grid_id.tolist()==["1_0"]
+    with pytest.raises(ValueError,match="Only GEE"):
+        fig2_gap_grid.make(tmp_path,grid,t,"groundsource_count","fig2_nope")
+
+
+def test_only_requested_gee_bands_and_mismatched_duplicate_rows(tmp_path):
+    from gee_flooding import fig2_gee
+    g=gf10(tmp_path)
+    x=fig2_gee.launch(g,0,2,"static",None,"Figure2",bands="hand_m,slope_deg")
+    assert x["requested_bands"]==["hand_m","slope_deg"]
+    assert "_b" in x["description"] and not x["task_submitted"]
+    with pytest.raises(ValueError,match="Invalid or duplicate"):
+        fig2_gee.launch(g,0,2,"static",None,"Figure2",bands="hand_m,hand_m")
+    with pytest.raises(ValueError,match="only supports"):
+        fig2_gee.launch(g,0,2,"weather","2024-07-01","Figure2",bands="hand_m")
+    folder=tmp_path/"gee"
+    folder.mkdir()
+    pd.DataFrame({"grid_id":["0_0","1_0"],"hand_m":[2.,3.]}).to_csv(
+        folder/"f2_static_2021_000000_000001_baaa.csv",index=False)
+    pd.DataFrame({"grid_id":["0_0","1_0"],"slope_deg":[.5,.8]}).to_csv(
+        folder/"f2_static_2021_000000_000001_bbbb.csv",index=False)
+    merged=combine._load_gee(folder,"f2_static_")
+    assert {"hand_m","slope_deg"}<=set(merged)
+    assert len(merged)==2
+    pd.DataFrame({"grid_id":["0_0"],"hand_m":[10.]}).to_csv(
+        folder/"f2_static_2021_000000_000000_bccc.csv",index=False)
+    with pytest.raises(ValueError,match="Conflicting"):
+        combine._load_gee(folder,"f2_static_")
