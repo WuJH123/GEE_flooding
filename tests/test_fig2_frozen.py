@@ -86,7 +86,7 @@ def test_frozen_audit_rejects_2024_25_chosen_cities(tmp_path):
     d=pd.read_csv(audit)
     d=d.drop(columns=["eligible_using_only_development_years"])
     d.to_csv(audit,index=False)
-    with pytest.raises(ValueError,match="2021"):
+    with pytest.raises(ValueError,match="development-year"):
         fig2_frozen.freeze(panel,audit,contract)
 
 
