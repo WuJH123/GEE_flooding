@@ -87,3 +87,24 @@ def test_2020_jrc_independent_shadow_detects_area_drift(tmp_path):
     bad=fig2_gee_qc.check_independent_built_area(local,exp)
     assert bad["status"]=="FAILED_SOURCE_CONSERVATION"
     assert bad["n_flagged"]==1
+
+
+def test_historical_baseline_and_growth_crosscheck(tmp_path):
+    _,local=fixture(tmp_path)
+    # The reference local file already has built_fraction_2020.
+    static=tmp_path/"static"
+    static.mkdir()
+    pd.DataFrame({"grid_id":["0_0","1_0"],
+                  "built_fraction_2000":[.35,.1],
+                  "built_growth_2000_2020":[.15,.1]}).to_csv(
+        static/"f2_static_2021_000000_000001_bhist.csv",index=False)
+    qc=fig2_gee_qc.check_ghsl_growth_identity(local,static)
+    assert qc["status"]=="HISTORICAL_SHARE_CROSSCHECK"
+    assert qc["n_overlap"]==2
+    pd.DataFrame({"grid_id":["0_0","1_0"],
+                  "built_fraction_2000":[.05,.1],
+                  "built_growth_2000_2020":[.15,.1]}).to_csv(
+        static/"f2_static_2021_000000_000001_bhist.csv",index=False)
+    qc=fig2_gee_qc.check_ghsl_growth_identity(local,static)
+    assert qc["status"]=="FAILED_HISTORICAL_SHARE_IDENTITY"
+    assert qc["n_flagged"]==1
