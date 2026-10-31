@@ -133,7 +133,10 @@ def draw_v3(root,city,grid,high,all_labels,gfid_rows,sensitivity,validation,out)
     e.grid(axis="x",alpha=.12)
 
     f.set_title("f  Pre-2024 city sample eligibility",loc="left",weight="bold")
-    reg=(city.groupby("continent",dropna=False)
+    # Unknown is a geospatial-resolution failure, NOT a seventh continent.
+    unresolved=int(city.continent.fillna("Unknown").eq("Unknown").sum())
+    known=city.loc[city.continent.notna()&city.continent.ne("Unknown")]
+    reg=(known.groupby("continent",dropna=False)
          .agg(n=("city_id","size"),eligible=("eligible_using_only_development_years","sum"))
          .sort_values("n"))
     yy=np.arange(len(reg))
@@ -141,6 +144,8 @@ def draw_v3(root,city,grid,high,all_labels,gfid_rows,sensitivity,validation,out)
     f.set(yticks=yy,yticklabels=[str(k) for k in reg.index],
           xlabel="UCDB cities eligible from 2021–2023 (%)",xlim=(0,100))
     f.grid(axis="x",alpha=.12)
+    f.text(.98,.02,f"Unresolved city continents: {unresolved:,} (excluded from regional bars)",
+           transform=f.transAxes,ha="right",va="bottom",fontsize=7.3,color="#555555")
     fig.suptitle("Figure 1 v3 | Urban flood-report coverage and observational reliability",
                  fontsize=16,fontweight="bold")
     footer=fig.add_subplot(gs[2,:])
