@@ -74,7 +74,7 @@ def validate_contract(path):
     return c
 
 
-def prepare(panel, cities=None, grid_cities=None, extended=None):
+def prepare(panel, cities=None, grid_cities=None, extended=None, resilience_static=None):
     df = _read(panel)
     missing = set(BASE + MODELS["M2_surface"]) - set(df)
     if missing:
@@ -137,6 +137,24 @@ def prepare(panel, cities=None, grid_cities=None, extended=None):
         x = x[want].copy()
         x.grid_id = x.grid_id.astype(str)
         df = df.merge(x, on="grid_id", how="left", validate="many_to_one")
+    if resilience_static:
+        rich=_read(resilience_static)
+        if "grid_id" not in rich or rich.grid_id.duplicated().any():
+            raise ValueError("Resilience static GF10 requires unique grid_id")
+        rich.grid_id=rich.grid_id.astype(str)
+        # Existing validated predictors remain authoritative; no suffix collisions.
+        newcols=[x for x in rich if x not in df.columns and x!="grid_id"]
+        allowed=set(["elevation_m","upstream_area_km2","river_water_fraction",
+                     "built_nres_fraction_2020","tree_fraction","grass_fraction",
+                     "cropland_fraction","wetland_fraction","water_fraction",
+                     "bare_fraction"])
+        newcols=[x for x in newcols if x in allowed]
+        if newcols:
+            rich=rich[["grid_id"]+newcols]
+            df=df.merge(rich,on="grid_id",how="left",validate="many_to_one")
+            for key in newcols:
+                if not np.isfinite(pd.to_numeric(df[key],errors="coerce")).all():
+                    raise ValueError("Invalid optional resilience GF10 indicator "+key)
     df["year"] = df.date.dt.year.astype(int)
     if "country" not in df:
         df["country"] = np.nan
@@ -327,9 +345,10 @@ def _figure(path, results, preds, physical, df, m4, split):
 
 
 def run(root, panel, contract, cities=None, grid_cities=None, extended=None,
-        physical=None, tag="fig2_v1", seeds=(42,43,44), require_physical=False):
+        physical=None, tag="fig2_v1", seeds=(42,43,44), require_physical=False,
+        resilience_static=None):
     c = validate_contract(contract)
-    df = prepare(panel, cities, grid_cities, extended)
+    df = prepare(panel, cities, grid_cities, extended, resilience_static)
     if not tag.startswith("fig2_") or "/" in tag or "\\" in tag or tag in (".", ".."):
         raise ValueError("Tag must be a simple fig2_* directory")
     out=safe_output(root, "outputs/"+tag)
@@ -357,6 +376,24 @@ def run(root, panel, contract, cities=None, grid_cities=None, extended=None,
         if not c.get("reporting_propensity_external_audit", False):
             raise ValueError("M5 weights require separate external coverage audit declared in contract")
         df["reporting_propensity"]=p.astype(float)
+    # Optional ERA5 and hydrology tests are separately labelled; the main
+    # M0-M5 comparison remains on the same withheld rows as before.
+    optional={}
+    met=["rain_24h_mm","rain_3h_mm","api_7d_mm",
+         "soil_water_0_7cm","soil_water_7_28cm","temperature_2m_c"]
+    if set(met)<=set(df):
+        optional["M0b_rain_ERA5"]=met
+    hydro=list(MODELS["M1_terrain"])+["upstream_area_km2","elevation_m"]
+    if set(hydro)<=set(df):
+        optional["M1b_terrain_runoff"]=hydro
+    green=list(MODELS["M3_form"])+["tree_fraction","wetland_fraction","water_fraction"]
+    if set(green)<=set(df):
+        optional["M3b_green_blue"]=green
+    for model,columns in optional.items():
+        for key in columns:
+            if not np.isfinite(pd.to_numeric(df[key],errors="coerce")).all():
+                raise ValueError("Missing optional indicator for "+model+": "+key)
+    experiments={**MODELS,**optional}
     y=df.observed_news_onset.to_numpy(dtype=int)
     records=[]; failed=[]; main_preds=None; main_model=None; main_split=None
     for domain, field in GROUPS:
@@ -368,7 +405,7 @@ def run(root, panel, contract, cities=None, grid_cities=None, extended=None,
                 continue
             if domain=="unseen_city_and_storm" and seed==seeds[0]:
                 main_split=(i,j)
-            for name, cols in MODELS.items():
+            for name, cols in experiments.items():
                 if name=="M5_selection_sensitivity" and not m5:
                     continue
                 X=df[cols].to_numpy(dtype=float)
@@ -409,6 +446,8 @@ def run(root, panel, contract, cities=None, grid_cities=None, extended=None,
              "n_exposures":len(df),"n_news_positive_exposures":int(y.sum()),
              "n_cities":int(df.city_id.nunique()),"n_meteorological_storm_ids":int(df.storm_id.nunique()),
              "models_completed":list(result.model.unique()),
+             "optional_resilience_ablation_models":list(optional),
+             "actual_physical_risk_calibration":False,
              "m5_status":"EXTERNAL_PROPENSITY_SENSITIVITY_ONLY" if m5 else "NOT_IDENTIFIABLE_WITHOUT_EXTERNAL_COVERAGE",
              "valid_splits":len(set(zip(result.split,result.seed))),
              "invalid_splits":failed,"physical_validation":external_qc,"weather_contract":c,
@@ -428,12 +467,14 @@ def main(argv=None):
     p.add_argument("--cities",type=Path)
     p.add_argument("--grid-cities",type=Path)
     p.add_argument("--extended",type=Path)
+    p.add_argument("--resilience-static",type=Path,help="Optional audited GF10 static resilience indicators")
     p.add_argument("--physical",type=Path)
     p.add_argument("--tag",default="fig2_v1")
     p.add_argument("--require-physical",action="store_true")
     args=p.parse_args(argv)
     result=run(args.root,args.panel,args.contract,args.cities,args.grid_cities,
-               args.extended,args.physical,args.tag,require_physical=args.require_physical)
+               args.extended,args.physical,args.tag,require_physical=args.require_physical,
+               resilience_static=args.resilience_static)
     print(json.dumps(result,ensure_ascii=False,indent=2,default=str))
 
 
