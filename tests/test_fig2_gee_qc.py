@@ -108,3 +108,19 @@ def test_historical_baseline_and_growth_crosscheck(tmp_path):
     qc=fig2_gee_qc.check_ghsl_growth_identity(local,static)
     assert qc["status"]=="FAILED_HISTORICAL_SHARE_IDENTITY"
     assert qc["n_flagged"]==1
+
+
+def test_nonresidential_area_is_subset_of_local_total(tmp_path):
+    _,local=fixture(tmp_path)
+    p=tmp_path/"exposure"
+    p.mkdir()
+    target=p/"f2_exposure_2020_000000_000001_bnres.csv"
+    pd.DataFrame({"grid_id":["0_0","1_0"],
+                  "built_nres_area_km2_2020":[15.,10.]}).to_csv(target,index=False)
+    good=fig2_gee_qc.check_nres_never_exceeds_total(local,p)
+    assert good["status"]=="NRES_SUBSET_CHECK"
+    pd.DataFrame({"grid_id":["0_0","1_0"],
+                  "built_nres_area_km2_2020":[15.,26.]}).to_csv(target,index=False)
+    bad=fig2_gee_qc.check_nres_never_exceeds_total(local,p)
+    assert bad["status"]=="FAILED_NRES_SUBSET_TOTAL"
+    assert bad["n_violations"]==1
