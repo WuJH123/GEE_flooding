@@ -144,3 +144,29 @@ def test_manual_review_requires_traceable_independent_source():
     reviewed.loc[0,"reviewer_id"]="Reviewer 1"
     reviewed.loc[0,"evidence_source_uri"]="https://example.org/event"
     assert annotate_summary(reviewed)["reviewed_independent_rows"]==1
+
+
+def test_official_usgs_potential_duplicates_gfid_event_id(tmp_path):
+    """Actual USGS header is GFID_Event_ID, not just Event_ID."""
+    from gee_flooding.fig1_v3_gfid import potential_duplicate_audit
+    f=tmp_path/"Potential_Duplicate_Events.csv"
+    pd.DataFrame({"GFID_Event_ID":["GFID_001","GFID_002","GFID_003"],
+                  "Potential_Duplicate_Match_Count":[1,2,1],
+                  "Potential_Duplicate_GFID_Event_IDs":["GFID_002","GFID_001","GFID_001"]}).to_csv(f,index=False)
+    main=pd.DataFrame({"event_id":["GFID_001","GFID_002","GFID_003","GFID_004"]})
+    selected,report=potential_duplicate_audit(f,main)
+    assert report["linked_key_column"]=="GFID_Event_ID"
+    assert report["unique_gfid_ids_with_possible_overlap"]==3
+    assert report["attempted_id_joins"][0]["key_match_rate"]==1.0
+    assert selected=={"GFID_001","GFID_002","GFID_003"}
+    assert len(main)==4  # no automatic deletion or merger
+
+
+def test_figure_footer_layout_uses_dedicated_subplot():
+    """Prevents regression to footer text colliding with lower panel x labels."""
+    import inspect
+    from gee_flooding.fig1_v3 import draw_v3
+    source=inspect.getsource(draw_v3)
+    assert "fig.add_gridspec(3,3" in source
+    assert "footer=fig.add_subplot(gs[2,:])" in source
+    assert "Unknown is a geospatial-resolution failure" in source
