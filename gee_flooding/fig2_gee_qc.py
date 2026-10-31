@@ -125,6 +125,37 @@ def check_independent_built_area(local, exposure_dir):
                 max_relative_difference=float(relative.max()))
 
 
+def check_nres_never_exceeds_total(local, exposure_dir):
+    """2020 GHSL nonresidential built area cannot exceed total built area."""
+    if local is None or exposure_dir is None:
+        return {"status":"NO_NRES_COMPARISON"}
+    ref=pd.read_parquet(local)
+    if not {"grid_id","built_area_km2_2020"}<=set(ref):
+        return {"status":"NO_LOCAL_BUILT_TOTAL"}
+    chunks=[]
+    for path in sorted(Path(exposure_dir).glob("f2_exposure_*.csv")):
+        data=pd.read_csv(path)
+        if {"grid_id","built_nres_area_km2_2020"}<=set(data):
+            chunks.append(data[["grid_id","built_nres_area_km2_2020"]])
+    if not chunks:return {"status":"NO_NRES_EXPORTED"}
+    nres=pd.concat(chunks,ignore_index=True)
+    nres.grid_id=nres.grid_id.astype(str)
+    if nres.grid_id.duplicated().any():
+        raise ValueError("Duplicate GEE nres area rows across exports")
+    ref.grid_id=ref.grid_id.astype(str)
+    matched=ref[["grid_id","built_area_km2_2020"]].merge(
+        nres,on="grid_id",validate="one_to_one")
+    if matched.empty:return {"status":"NO_SHARED_NRES_GF10"}
+    total=_num(matched.built_area_km2_2020,"built_area_km2_2020")
+    part=_num(matched.built_nres_area_km2_2020,"built_nres_area_km2_2020")
+    violation=part>total+.5
+    return dict(status="FAILED_NRES_SUBSET_TOTAL" if violation.any()
+                else "NRES_SUBSET_CHECK",n_overlap=int(len(matched)),
+                n_violations=int(violation.sum()),
+                maximum_excess_km2=float((part-total).max()),
+                allowable_reprojection_tolerance_km2=.5)
+
+
 def check_ghsl_growth_identity(local, static_dir):
     """Check separately exported GEE historical share and growth against
     locally measured 2020 built share (same JRC lineage, two pipelines).
@@ -187,6 +218,14 @@ def audit(root,plan_dir,static_dir=None,exposure_dir=None,local=None,
         errors.append(dict(job_id="SOURCE_CONSERVATION",status="INVALID_EXPORT",
                            problem="GEE GHSL source area disagrees with independent local extraction"))
     try:
+        nres=check_nres_never_exceeds_total(local,exposure_dir)
+    except Exception as err:
+        nres=dict(status="INVALID_NRES_CHECK",problem=str(err))
+        errors.append(dict(job_id="NRES_SUBSET",status="INVALID_EXPORT",problem=str(err)))
+    if nres.get("status")=="FAILED_NRES_SUBSET_TOTAL":
+        errors.append(dict(job_id="NRES_SUBSET",status="INVALID_EXPORT",
+                           problem="Nonresidential GHSL area exceeds total built area"))
+    try:
         growth=check_ghsl_growth_identity(local,static_dir)
     except Exception as err:
         growth=dict(status="INVALID_HISTORICAL_QC",problem=str(err))
@@ -204,6 +243,7 @@ def audit(root,plan_dir,static_dir=None,exposure_dir=None,local=None,
                 n_valid=sum(x["status"]=="CSV_AUDITED_SCHEMA_AND_RANGE" for x in records),
                 n_missing=len(missing),n_invalid=len(errors),
                 independent_JRC_math_check=shadow,
+                nonresidential_subset_check=nres,
                 historical_GHSL_2000_2020_identity_check=growth,
                 dataset_value_validation="ranges and task coverage only; NOT external physical truth",
                 publication_ready=False)
