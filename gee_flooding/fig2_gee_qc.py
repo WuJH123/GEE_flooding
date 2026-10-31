@@ -20,6 +20,7 @@ from .paths import safe_output, atomic_json
 FRACTIONS = {"vegetation_fraction","tree_fraction","grass_fraction",
              "cropland_fraction","wetland_fraction","water_fraction",
              "bare_fraction","river_water_fraction","built_fraction_2020",
+             "built_fraction_2000",
              "built_nres_fraction_2020","built_neighbor_density","built_fragmentation"}
 NONNEG = {"hand_m","slope_deg","upstream_area_km2","elevation_m",
           "population_count_2020","built_area_km2_2020",
