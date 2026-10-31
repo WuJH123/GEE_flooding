@@ -224,3 +224,29 @@ def test_missing_GEE_task_planner_respects_original_ids_and_source_groups(tmp_pa
         assert set(src.grid_id)<=set(pd.read_parquet(g).grid_id)
     with pytest.raises(FileExistsError):
         fig2_backfill_plan.plan(tmp_path,g,p,tag="fig2_missing_task_fixture")
+
+
+def test_gee_static_source_family_is_lazily_built():
+    from gee_flooding.fig2_gee import _static_image
+    loaded=[]
+    class Fake:
+        def select(self,*args,**kwargs):return self
+        def rename(self,*args,**kwargs):return self
+        def reduceResolution(self,**kwargs):return self
+        def eq(self,*args,**kwargs):return self
+    class Image:
+        @staticmethod
+        def cat(items):return items
+    class Reducer:
+        @staticmethod
+        def mean():return "mean"
+    class EE:
+        Reducer=Reducer
+        Image=staticmethod(lambda name:(loaded.append(name),Fake())[1])
+    x=_static_image(EE(),["hand_m"])
+    assert len(x)==1
+    assert loaded==["MERIT/Hydro/v1_0_1"]
+    loaded.clear()
+    x=_static_image(EE(),["built_fraction_2020"])
+    assert len(x)==1
+    assert loaded==["JRC/GHSL/P2023A/GHS_BUILT_S/2020"]
