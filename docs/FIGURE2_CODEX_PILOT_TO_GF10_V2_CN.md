@@ -97,3 +97,16 @@ https://developers.google.com/earth-engine/datasets/catalog/MERIT_Hydro_v1_0_1
 https://developers.google.com/earth-engine/datasets/catalog/ESA_WorldCover_v200
 https://developers.google.com/earth-engine/datasets/catalog/NASA_GPM_L3_IMERG_V07
 https://essd.copernicus.org/articles/14/1831/2022/
+
+
+## 5. Bridge: reuse completed local-first static GF10 in Figure2 M0-M5
+
+Do not submit another static GEE export just because the older fig2_prepare expected CSV. The new --static-parquet switch uses audited merged GF10 directly and tests strict source conflict, grid count, finite required fields and complete weather.
+
+ONLY AFTER all required 2021-2025 date × grid-day IMERG/ERA5 CSV exports are actually downloaded and audited:
+
+    $FINALSTATIC="$ROOT\data\derived\fig2_integrated_after_GEE_v3\fig2_GF10_resilience_indicators.parquet"
+    $CROSS="$ROOT\outputs\fig1_v2\fig1_grid_dominant_ucdb.parquet"
+    & $PY -m gee_flooding.fig2_prepare --root $ROOT --grid $GRID --grid-cities $CROSS --weather-dir "$ROOT\data\gee_exports\fig2_weather" --static-parquet $FINALSTATIC --start 2021-01-01 --end 2025-12-31 --count 182 --tag fig2_prepared_local_static_v3
+
+The expected 182 × 1826 = 332,332 UTC grid-days are before heavy-rain filtering. A week of GEE smoke-test data will intentionally fail a complete five-year coverage request. Actual Fig2 M0–M5 frozen holdout tests and physical validation are separate later tasks. The bridged final static table is NOT automatically proof of generalization or observed adaptation.
