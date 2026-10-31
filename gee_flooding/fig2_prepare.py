@@ -106,7 +106,7 @@ def weather_objects(df, p24_min=20.0, p3_min=10.0, radius_km=30):
 
 
 def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
-          start, end, start_row=0, count=50, p24_min=20, p3_min=10, radius_km=30):
+          start, end, start_row=0, count=50, p24_min=20, p3_min=10, radius_km=30, exposure_dir=None):
     grid=pd.read_parquet(grid_path)
     for col in ("grid_id","grid_x","grid_y","urban_fraction_2020"):
         if col not in grid:raise ValueError("GF10 reference missing "+col)
@@ -124,6 +124,34 @@ def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
     if grid.city_id.isna().any():raise ValueError("Study subset includes GF10 cells not assigned to official UCDB cities")
     w=load_exports(weather_dir,"f2_weather_")
     s=load_exports(static_dir,"f2_static_")
+    # The frozen grid is authoritative; static exports copy urban share for audit.
+    if "urban_fraction_2020" in s:
+        reference=grid[["grid_id","urban_fraction_2020"]]
+        check=s[["grid_id","urban_fraction_2020"]].merge(
+            reference,on="grid_id",how="left",suffixes=("_gee","_frozen"),
+            validate="one_to_one")
+        diff=(pd.to_numeric(check.urban_fraction_2020_gee,errors="coerce")-
+              check.urban_fraction_2020_frozen).abs()
+        if diff.isna().any() or diff.gt(1e-5).any():
+            raise ValueError("GEE urban share conflicts with frozen GF10 reference")
+        s=s.drop(columns=["urban_fraction_2020"])
+    exposure=None
+    if exposure_dir is not None:
+        exposure=load_exports(exposure_dir,"f2_exposure_")
+        exposure["grid_id"]=exposure.grid_id.astype(str)
+        required={"grid_id","population_count_2020","built_area_km2_2020",
+                  "built_nres_area_km2_2020"}
+        if required-set(exposure):raise ValueError("GHSL exposure columns missing")
+        if exposure.grid_id.duplicated().any() or set(exposure.grid_id)!=set(grid.grid_id):
+            raise ValueError("Incomplete or duplicate GHSL population context")
+        for key in required-{"grid_id"}:
+            exposure[key]=pd.to_numeric(exposure[key],errors="coerce")
+            if not np.isfinite(exposure[key]).all() or exposure[key].lt(0).any():
+                raise ValueError("Invalid GHSL exposure: "+key)
+        if exposure.built_area_km2_2020.gt(100.01).any():
+            raise ValueError("GHSL built area exceeds 100 km2 frozen GF10")
+        if (exposure.built_nres_area_km2_2020>exposure.built_area_km2_2020+0.01).any():
+            raise ValueError("GHSL nonresidential built area exceeds total")
     for name,frame,fields,key in [("weather",w,WEATHER,["grid_id","date"]),
                                   ("static",s,STATIC,["grid_id"])]:
         if set(fields)-set(frame):
@@ -169,15 +197,29 @@ def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
     output_static=safe_output(root,"data/derived/static_grid_factors.parquet")
     output_extended=safe_output(root,"data/derived/fig2_extended_grid_factors.parquet")
     contract_path=safe_output(root,"data/derived/fig2_weather_provenance.json")
-    for p in [output_weather,output_static,output_extended,contract_path]:
+    output_resilience=safe_output(root,"data/derived/fig2_resilience_all_static_GF10.parquet")
+    output_context=safe_output(root,"data/derived/fig2_ghsl_population_context_GF10.parquet")
+    generated=[output_weather,output_static,output_extended,contract_path,output_resilience]
+    if exposure is not None:generated.append(output_context)
+    for p in generated:
         if p.exists():raise FileExistsError("Refusing to overwrite: "+str(p))
     output_weather.parent.mkdir(parents=True,exist_ok=True)
     weather_cols=["grid_id","date","storm_id","city_id","rain_24h_mm","rain_3h_mm","api_7d_mm"]
-    storms[weather_cols].to_parquet(output_weather,index=False)
+    # Preserve ERA5-Land antecedent features, with no missing-value zero-fill.
+    extras=[key for key in ("soil_water_0_7cm","soil_water_7_28cm","temperature_2m_c")
+            if key in storms]
+    for key in extras:
+        storms[key]=pd.to_numeric(storms[key],errors="coerce")
+        if not np.isfinite(storms[key]).all():
+            raise ValueError("ERA5-Land incomplete: "+key)
+    storms[weather_cols+extras].to_parquet(output_weather,index=False)
     static=grid[["grid_id","urban_fraction_2020"]].merge(s,on="grid_id",
                                                           how="inner",validate="one_to_one")
     static[["grid_id","hand_m","slope_deg","urban_fraction_2020",
             "vegetation_fraction"]].to_parquet(output_static,index=False)
+    if static.grid_id.duplicated().any():raise ValueError("Duplicated GF10 static key")
+    static.to_parquet(output_resilience,index=False)
+    if exposure is not None:exposure.to_parquet(output_context,index=False)
     static[["grid_id","built_fraction_2020","built_neighbor_density","built_fragmentation",
             "built_growth_2000_2020"]].to_parquet(output_extended,index=False)
     c={"meteorology_source":"NASA/GPM_L3/IMERG_V07",
@@ -192,7 +234,12 @@ def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
        "geocoded_news_not_in_storm_definitions":True,
        "fixed_2020_2021_surface_not_historical_causal_exposure":True,
        "event_independence_caveat":"Storm IDs are connected wet components, may split/merge meteorological systems.",
-       "no_flood_free_negatives":True}
+       "no_flood_free_negatives":True,
+       "gf10_resilience_static_feature_count":len(static.columns)-1,
+       "ghsl_exposure_context_available":exposure is not None,
+       "era5_daily_indicators":extras,
+       "gee_sampling_crs":"EPSG:4326",
+       "population_context_caveat":"GHSL 100m population and built-surface sums require source-projection conservation QC"}
     atomic_json(contract_path,c)
     return c
 
@@ -205,6 +252,7 @@ def main(argv=None):
     p.add_argument("--labels",type=Path,help="Reserved: labels never used to define storms")
     p.add_argument("--weather-dir",type=Path,required=True)
     p.add_argument("--static-dir",type=Path,required=True)
+    p.add_argument("--exposure-dir",type=Path,help="Optional completed GHSL GHS_POP context CSVs")
     p.add_argument("--start",required=True,help="First inclusive UTC date")
     p.add_argument("--end",required=True,help="Last inclusive UTC date")
     p.add_argument("--start-row",type=int,default=0)
@@ -214,7 +262,7 @@ def main(argv=None):
     p.add_argument("--radius-km",type=float,default=30)
     a=p.parse_args(argv)
     print(json.dumps(build(a.root,a.grid,a.grid_cities,a.labels,a.weather_dir,a.static_dir,
-                           a.start,a.end,a.start_row,a.count,a.p24_min,a.p3_min,a.radius_km),
+                           a.start,a.end,a.start_row,a.count,a.p24_min,a.p3_min,a.radius_km,a.exposure_dir),
                      indent=2,ensure_ascii=False))
 
 

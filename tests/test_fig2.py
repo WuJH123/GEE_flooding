@@ -98,7 +98,7 @@ def test_physical_evidence_is_not_fabricated(tmp_path):
 
 def test_gee_export_is_bounded_dry_run_without_network(tmp_path):
     grid=tmp_path/"grid.parquet"
-    pd.DataFrame({"grid_id":["0_0","1_0"],"grid_x":[0,1],"grid_y":[0,0]}).to_parquet(grid)
+    pd.DataFrame({"grid_id":["0_0","1_0"],"grid_x":[0,1],"grid_y":[0,0],"urban_fraction_2020":[.5,.7]}).to_parquet(grid)
     r=fig2_gee.launch(grid,0,2,"weather","2023-09-01","test",submit=False)
     assert r["task_submitted"] is False
     with pytest.raises(ValueError):
