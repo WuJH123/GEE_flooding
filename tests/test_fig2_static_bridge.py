@@ -16,6 +16,7 @@ def test_prepare_uses_audited_local_first_static_without_reexport(tmp_path):
     pd.DataFrame({"grid_id":["0_0","1_0"],
                   "urban_fraction_2020":[.4,.6],
                   "hand_m":[2.0,4.0],"slope_deg":[.1,.2],
+                  "upstream_area_km2":[20.,30.],
                   "vegetation_fraction":[.25,.35],
                   "built_fraction_2020":[.4,.5],
                   "built_neighbor_density":[.3,.4],
