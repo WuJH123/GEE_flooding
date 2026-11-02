@@ -37,7 +37,7 @@ def build(root,sources,start,end,tag):
     a.precipitation_rate_mm_h=pd.to_numeric(a.precipitation_rate_mm_h,errors="coerce")
     if not np.isfinite(a.precipitation_rate_mm_h).all() or a.precipitation_rate_mm_h.lt(0).any():
         raise ValueError("NASA mm/h rate is missing or negative")
-    if a.timestamp_utc.dt.second.ne(0).any() or ~a.timestamp_utc.dt.minute.isin([0,30]).all():
+    if a.timestamp_utc.dt.second.ne(0).any() or not a.timestamp_utc.dt.minute.isin([0,30]).all():
         raise ValueError("NASA source must have aligned UTC half-hour timestamps")
     dates=pd.date_range(begin,finish)
     start_time=begin-pd.Timedelta(minutes=150)
