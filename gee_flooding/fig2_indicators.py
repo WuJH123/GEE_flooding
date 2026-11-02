@@ -98,7 +98,7 @@ def _load_gee(directory,prefix):
 
 
 def assemble(root,grid,tag,local=None,gee_static=None,gee_exposure=None,
-             conflict_fraction=.03,conflict_relative=.10):
+             conflict_fraction=.03,conflict_relative=.10,local_static=None):
     if not re.fullmatch(r"fig2_[A-Za-z0-9_-]+",tag):
         raise ValueError("Provide immutable fig2_* output version")
     from .fig2_local_exact import selected_grid
@@ -114,6 +114,18 @@ def assemble(root,grid,tag,local=None,gee_static=None,gee_exposure=None,
     domain=frozen.grid_id.tolist()
     out=frozen[["grid_id","urban_fraction_2020"]].copy().set_index("grid_id")
     sources=[]
+    if local_static:
+        local_static=Path(local_static)
+        check=local_static.parent/"fig2_local_static_qc.json"
+        if not check.is_file():
+            raise ValueError("Local static GF10 must have sibling fig2_local_static_qc.json")
+        meta=json.loads(check.read_text(encoding="utf-8"))
+        if (meta.get("frozen_grid_count")!=len(frozen)
+            or meta.get("n_conflicts",meta.get("conflicts",1))!=0
+            or meta.get("source_epoch_reference")!="frozen_surface_2020_2021"):
+            raise ValueError("Static local source fails frozen GF10 and time contract")
+        sources.append(("LOCAL_STATIC_AUDITED",
+                        source_frame(pd.read_parquet(local_static),domain,"LOCAL_STATIC_AUDITED")))
     if local:
         local=Path(local)
         audit=local.parent/"fig2_local_exact_qc.json"
@@ -239,12 +251,14 @@ def main(argv=None):
     p.add_argument("--root",type=Path,default=Path(r"E:\GEE_flooding"))
     p.add_argument("--grid",type=Path,required=True)
     p.add_argument("--local",type=Path,default=None,help="Audited output of fig2_local_exact")
+    p.add_argument("--local-static",type=Path,
+                   help="Audited multi-batch fig2_static_local wide table; preferred before GEE")
     p.add_argument("--gee-static",type=Path,default=None)
     p.add_argument("--gee-exposure",type=Path,default=None)
     p.add_argument("--tag",default="fig2_integrated_GF10_v1")
     a=p.parse_args(argv)
     print(json.dumps(assemble(a.root,a.grid,a.tag,a.local,
-                              a.gee_static,a.gee_exposure),
+                              a.gee_static,a.gee_exposure,local_static=a.local_static),
                      ensure_ascii=False,indent=2))
 
 if __name__=="__main__":main()
