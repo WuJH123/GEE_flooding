@@ -120,9 +120,9 @@ def build(root,grid_path,city_path,rain_path,peak3h_path,static_path,
     if static.grid_id.duplicated().any() or set(static.grid_id)!=set(grid.grid_id):
         raise ValueError("Static file does not match declared frozen GF10")
     for col in STATIC:
-        if col not in static and col!="built_fraction_2020":
+        if col not in static:
             raise ValueError("Missing Figure2 mandatory static "+col)
-    for col in ("hand_m","slope_deg","vegetation_fraction","built_fraction_2020",
+    for col in ("hand_m","slope_deg","upstream_area_km2","vegetation_fraction","built_fraction_2020",
                 "built_neighbor_density","built_fragmentation","built_growth_2000_2020"):
         if col not in static or not np.isfinite(pd.to_numeric(static[col],errors="coerce")).all():
             raise ValueError("M0–M4 cannot use incomplete static "+col)
@@ -135,8 +135,7 @@ def build(root,grid_path,city_path,rain_path,peak3h_path,static_path,
     out.mkdir(parents=True,exist_ok=False)
     cols=["grid_id","date","storm_id","city_id","rain_24h_mm","rain_3h_mm","api_7d_mm"]
     exposure[cols].to_parquet(out/"storm_exposure_weather.parquet",index=False)
-    static[["grid_id","hand_m","slope_deg","urban_fraction_2020",
-            "vegetation_fraction"]].to_parquet(out/"static_grid_factors.parquet",index=False)
+    static.to_parquet(out/"static_grid_factors.parquet",index=False)
     static[["grid_id","built_fraction_2020","built_neighbor_density",
             "built_fragmentation","built_growth_2000_2020"]].to_parquet(
                 out/"fig2_extended_grid_factors.parquet",index=False)
