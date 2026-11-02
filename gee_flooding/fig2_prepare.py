@@ -144,12 +144,16 @@ def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
         source=Path(static_parquet)
         audit=source.parent/"fig2_GF10_indicator_merge_qc.json"
         if not audit.is_file():
-            raise ValueError("Local-first static Parquet requires audited GF10 indicator merge QC")
+            audit=source.parent/"fig2_local_static_qc.json"
+        if not audit.is_file():
+            raise ValueError("Static Parquet requires audited local-static or indicator-merge QC")
         metadata=json.loads(audit.read_text(encoding="utf-8"))
         if metadata.get("frozen_grid_count")!=len(grid):
             raise ValueError("Merged local-first static GF10 count differs from selected grid")
-        if metadata.get("n_conflicts",0):
-            raise ValueError("Unresolved local/GEE indicator source conflicts before modeling")
+        if metadata.get("n_conflicts",metadata.get("conflicts",1)):
+            raise ValueError("Unresolved local indicator source conflicts before modeling")
+        if audit.name=="fig2_local_static_qc.json" and metadata.get("source_epoch_reference")!="frozen_surface_2020_2021":
+            raise ValueError("Local static frozen epoch/reference contract violated")
         s=pd.read_parquet(source)
     else:
         if static_dir is None:
