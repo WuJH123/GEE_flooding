@@ -26,9 +26,12 @@ def read(path):
 
 
 def build(root,grid_path,city_path,rain_path,peak3h_path,static_path,
-          start,end,tag,p24=20.0,p3=10.0,radius=30):
+          start,end,tag,p24=20.0,p3=10.0,radius=30,era_path=None,
+          peak_definition="aligned_utc_3h_max"):
     if not re.fullmatch(r"fig2_[a-zA-Z0-9_-]+",tag):
         raise ValueError("Use immutable fig2_* tag")
+    if peak_definition not in ("aligned_utc_3h_max","rolling_3h_max"):
+        raise ValueError("Declare real 3h-window definition; never derive 3h from daily totals")
     begin=pd.Timestamp(start);finish=pd.Timestamp(end)
     if begin<pd.Timestamp("2021-01-01") or finish>pd.Timestamp("2025-12-31") or finish<begin:
         raise ValueError("Frozen Figure2 UTC scope: 2021-2025")
@@ -100,10 +103,26 @@ def build(root,grid_path,city_path,rain_path,peak3h_path,static_path,
         raise ValueError("7d antecedent rainfall history incomplete")
     # Daily ERA5 inputs may be joined and shifted one UTC day; never use
     # event-day mean as a pre-onset causal predictor.
-    optional=[x for x in ("soil_water_0_7cm","soil_water_7_28cm","temperature_2m_c")
-              if x in w]
-    if optional:
-        raise ValueError("ERA5-Land daily weather must be entered via audited lagged source, not unshifted rain file")
+    optional=[]
+    if era_path is not None:
+        era=read(era_path)
+        need={"grid_id","date","soil_water_0_7cm","soil_water_7_28cm","temperature_2m_c"}
+        if need-set(era):raise ValueError("ERA5 daily source lacks "+str(need-set(era)))
+        era=era[list(need)].copy()
+        era.grid_id=era.grid_id.astype(str)
+        era.date=pd.to_datetime(era.date,errors="raise").dt.normalize()
+        if era.duplicated(["grid_id","date"]).any():raise ValueError("Duplicate ERA5 daily GF10")
+        optional=["soil_water_0_7cm","soil_water_7_28cm","temperature_2m_c"]
+        for key in optional:
+            era[key]=pd.to_numeric(era[key],errors="coerce")
+            if not np.isfinite(era[key]).all():raise ValueError("ERA5 daily missing "+key)
+        for key in optional[:2]:
+            if not era[key].between(0,1).all():raise ValueError("ERA5 soil volumetric water out of range")
+        # Daily observations of PREVIOUS UTC day are available before event day.
+        era["date"]=era["date"]+pd.Timedelta(days=1)
+        w=w.merge(era,on=["grid_id","date"],how="left",validate="one_to_one")
+        if w[optional].isna().any().any():
+            raise ValueError("Missing previous-day ERA5 weather in frozen scope")
     w=w.merge(grid[["grid_id","grid_x","grid_y","city_id"]],
               on="grid_id",validate="many_to_one")
     storms=weather_objects(w,p24_min=p24,p3_min=p3,radius_km=radius)
@@ -134,7 +153,7 @@ def build(root,grid_path,city_path,rain_path,peak3h_path,static_path,
     if out.exists():raise FileExistsError("Refusing to overwrite "+str(out))
     out.mkdir(parents=True,exist_ok=False)
     cols=["grid_id","date","storm_id","city_id","rain_24h_mm","rain_3h_mm","api_7d_mm"]
-    exposure[cols].to_parquet(out/"storm_exposure_weather.parquet",index=False)
+    exposure[cols+optional].to_parquet(out/"storm_exposure_weather.parquet",index=False)
     static.to_parquet(out/"static_grid_factors.parquet",index=False)
     static[["grid_id","built_fraction_2020","built_neighbor_density",
             "built_fragmentation","built_growth_2000_2020"]].to_parquet(
@@ -150,9 +169,12 @@ def build(root,grid_path,city_path,rain_path,peak3h_path,static_path,
         "spatial_scope":f"frozen GF10 selection, n={len(grid)}, NOT global by default",
         "start_date":str(begin.date()),"end_date":str(finish.date()),
         "time_basis":"UTC","rain_units":"mm",
-        "rain3h_aggregation":"maximum of source rolling 3h window per UTC day, not derived from daily total",
+        "rain3h_aggregation":peak_definition,
+        "rain3h_limitation":"Aligned nonoverlapping 3h bins underestimate an unconstrained rolling 3h maximum" if peak_definition=="aligned_utc_3h_max" else "Rolling 3h maximum requires independently verified six-bin window algorithm",
         "rain3h_source_file":str(peak3h_path),
         "rain_daily_source_file":str(rain_path),
+        "ERA5_previous_day_source_file":str(era_path) if era_path else None,
+        "ERA5_antecedent_only":bool(era_path),
         "n_declared_grid_days":len(grid)*len(dates),
         "n_storm_exposures":len(exposure),
         "storm_object_method":"meteorological GF10 daily connected components, not verified synoptic storms",
@@ -186,10 +208,14 @@ def main(argv=None):
     p.add_argument("--p24-min",type=float,default=20)
     p.add_argument("--p3-min",type=float,default=10)
     p.add_argument("--radius-km",type=float,default=30)
+    p.add_argument("--era-daily",type=Path,help="Optional previous-day GF10 ERA5-Land daily source")
+    p.add_argument("--rain3h-definition",choices=["aligned_utc_3h_max","rolling_3h_max"],
+                   default="aligned_utc_3h_max")
     a=p.parse_args(argv)
     print(json.dumps(build(a.root,a.grid,a.grid_cities,a.rain_daily,
                            a.rain_3h_max,a.static,a.start,a.end,a.tag,
-                           a.p24_min,a.p3_min,a.radius_km),
+                           a.p24_min,a.p3_min,a.radius_km,a.era_daily,
+                           a.rain3h_definition),
                      indent=2,ensure_ascii=False))
 
 
