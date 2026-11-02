@@ -6,7 +6,7 @@
 
 使用NOAA GSHHG 2.3.7 full-resolution（包含小岛）矢量多边形的全部陆地，严格用 L1（大陆/海岛）- L2（湖泊）+ L3（湖中岛）- L4（岛内水塘）+ L6（南极接地陆地）；不用L5南极冰前缘。凡GSHHG源中确有陆地且与10km格网相交面积>0的单元均保留，**不要求格网中心在陆地上**。GSHHG仍可能漏测现实中极微小的礁岛，因此不能声称绝对覆盖地球上每个小岛。
 
-地理投影：EPSG6933仅适用于86°S-86°N，旧GF10的x_y编号和相同格网边界保留；86°N–90°N改EPSG6931，采用N_x_y前缀；90°S–86°S改EPSG6932，采用S_x_y前缀。三者纬度分区互斥，全部10,000m边长、100km²名义面积。务必保留每行grid_crs和land_fraction，不允许用6933旧GEE导出脚本直接处理极区。旧 data/reference/grid10_urban_2020.parquet 与182格实验表都保留、绝不覆盖。
+地理投影：EPSG6933仅适用于86°S-86°N，旧GF10的x_y编号和相同格网边界保留；86°N–90°N采用预留EPSG6931与N_x_y前缀，但此纬度带没有已确认的永久陆地，因此实际输出为空是正常的；90°S–86°S改EPSG6932，采用S_x_y前缀。三者纬度分区互斥，全部10,000m边长、100km²名义面积。务必保留每行grid_crs和land_fraction，不允许用6933旧GEE导出脚本直接处理极区。旧 data/reference/grid10_urban_2020.parquet 与182格实验表都保留、绝不覆盖。
 
 ## 1 下载官方Shapefile（约142MB，可复用本地）
 
@@ -58,7 +58,7 @@ PowerShell：
 输出位于 E:\GEE_flooding\data\reference\gf10_global_land_gshhg_f_v1 ：
 - gf10_global_all_land.parquet 全部有正陆地面积的格网；
 - gf10_zone_G.parquet 原6933同位置全球陆地；
-- gf10_zone_N.parquet 北极等面积6931；
+- gf10_zone_N.parquet 仅在源中出现86°N以上陆地时生成；自然情况下应当不存在；
 - gf10_zone_S.parquet 南极等面积6932；
 - gf10_global_land_qc.json 分区格网数、总陆地面积、面积守恒、源Shapefile SHA256、旧ID对照；
 - legacy_urban_cells_not_in_new_land.csv 旧城市GF10未被GSHHG陆地包围的差异清单。
@@ -83,3 +83,5 @@ NOAA GSHHG https://www.ngdc.noaa.gov/mgg/shorelines/shorelines.html
 GSHHG分层 https://www.soest.hawaii.edu/wessel/gshhg/
 NSIDC EASE网格 https://nsidc.org/data/user-resources/help-center/guide-ease-grids
 EPSG 6933适用范围 https://epsg.io/6933
+
+独立地理事实核验：2025年发表的北极实测研究认定最北永久陆地 Inuit Qeqertaat/Kaffeklubben 位于约83°39′54″N（https://doi.org/10.1017/S0032247425000051），因此不能把北极86°以上无格网当作缺失。南极86°以南则必须存在实际陆地单元。
