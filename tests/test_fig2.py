@@ -22,6 +22,7 @@ def _fixture(tmp_path):
                     rain_24h_mm=float(rng.uniform(20,90)),
                     rain_3h_mm=float(rng.uniform(10,40)),api_7d_mm=float(rng.uniform(0,130)),
                     hand_m=float(rng.uniform(0,20)),slope_deg=float(rng.uniform(0,10)),
+                    upstream_area_km2=float(rng.uniform(2,100)),
                     urban_fraction_2020=float(rng.random()),
                     vegetation_fraction=float(rng.random()),
                     built_fraction_2020=float(rng.random()),
