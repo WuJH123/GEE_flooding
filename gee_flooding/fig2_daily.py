@@ -130,10 +130,15 @@ def build(root,grid_path,city_path,rain_path,peak3h_path,static_path,
     if exposure.empty:raise ValueError("No storm-exposed GF10 grid-days; validate rain units")
     merged=Path(static_path)
     audit=merged.parent/"fig2_GF10_indicator_merge_qc.json"
-    if not audit.is_file():raise ValueError("Static GF10 source must have fig2_indicators audit")
+    if not audit.is_file():
+        audit=merged.parent/"fig2_local_static_qc.json"
+    if not audit.is_file():raise ValueError("Static GF10 requires sibling audited QC")
     qa=json.loads(audit.read_text(encoding="utf-8"))
-    if qa.get("n_conflicts") or qa.get("frozen_grid_count")!=len(grid):
+    if (qa.get("n_conflicts",qa.get("conflicts",1))
+        or qa.get("frozen_grid_count")!=len(grid)):
         raise ValueError("Static source conflicts/incomplete grid")
+    if audit.name=="fig2_local_static_qc.json" and qa.get("source_epoch_reference")!="frozen_surface_2020_2021":
+        raise ValueError("Static local time-reference mismatch")
     static=read(merged)
     static.grid_id=static.grid_id.astype(str)
     if static.grid_id.duplicated().any() or set(static.grid_id)!=set(grid.grid_id):
