@@ -157,7 +157,7 @@ def _accumulate(poly,sign,areas,block=24):
                         if a>0:areas[x,y]+=sign*a
 
 
-def _zone_geometry(piece,zone,trans,lat_clip=None):
+def _zone_geometry(piece,zone,trans):
     epsg,lo,hi=ZONES[zone]
     clipped=piece.intersection(box(-180,lo,180,hi))
     if clipped.is_empty:return
@@ -210,7 +210,7 @@ def compute(source,resolution="f",subset=None,block=24):
                 for zone,t in origins.items():
                     if piece.bounds[3] < ZONES[zone][1] or piece.bounds[1] > ZONES[zone][2]:
                         continue
-                    for poly in _zone_geometry(piece,zone,t.transform if False else t):
+                    for poly in _zone_geometry(piece,zone,t):
                         vector_area[zone]+=sign*poly.area
                         _accumulate(poly,sign,table[zone],block)
                         split_count+=1
@@ -249,6 +249,13 @@ def _records(table):
         "land_area_km2","land_fraction","longitude","latitude"])
     if frame.grid_id.duplicated().any():
         raise ValueError("Global vs polar GF10 ID collision")
+    # Useful geographical shards without inferring national borders.
+    # Region is from GRID-CENTRE longitude/latitude, not administrative land.
+    x=np.floor((frame.longitude+180)/10)
+    y=np.floor((frame.latitude+90)/10)
+    frame["region10_id"]=[
+        f"R{int(a):02d}_{int(b):02d}" if np.isfinite(a) and np.isfinite(b)
+        else "POLAR_CENTRE_OUTSIDE_DOMAIN" for a,b in zip(x,y)]
     return frame,diagnostics
 
 
@@ -261,6 +268,16 @@ def build(root,source,resolution="f",legacy=None,tag="gf10_global_land_gshhg_f_v
     table,areas,counts,hashes=compute(source,resolution,subset=bounds,block=block)
     frame,stats=_records(table)
     if frame.empty:raise ValueError("No land polygons found in requested range")
+    if bounds is None:
+        # Sanity check independently of the per-polygon raster conservation
+        # accounting: GSHHG must contain the world's major landmasses.
+        # Broad bounds intentionally avoid claiming an exact official total.
+        world_area=float(frame.land_area_km2.sum())
+        if not 110_000_000<=world_area<=165_000_000:
+            raise ValueError(f"Global GSHHG apparent land area {world_area:,.0f} km2 "
+                             "cannot be the full land geography; inspect dateline and Antarctica")
+        if frame.loc[frame.zone.eq("N")].empty or frame.loc[frame.zone.eq("S")].empty:
+            raise ValueError("Missing >86N Greenland or Antarctic polar land zone")
     sum_out={z:float(frame.loc[frame.zone.eq(z),"land_area_km2"].sum()*1e6) for z in ZONES}
     comparison={}
     for zone,v in areas.items():
@@ -311,6 +328,8 @@ def build(root,source,resolution="f",legacy=None,tag="gf10_global_land_gshhg_f_v
             shoreline_feature_count=counts,
             coastline_shp_sha256=hashes,
             all_grid_cell_area_km2=100,
+            n_10deg_geographic_index_regions=int(frame.region10_id.nunique()),
+            tiny_land_cells_under_1pct=int(frame.land_fraction.lt(.01).sum()),
             global_crs="EPSG:6933",polar_north_crs="EPSG:6931",polar_south_crs="EPSG:6932",
             global_zone_latitude_limit=86,
             existing_6933_grid_ids_unchanged=True,
