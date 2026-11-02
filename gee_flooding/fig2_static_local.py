@@ -83,6 +83,13 @@ def _read_source(path,kind,n_expected):
         if not .5<=float(audit.get("min_pixel_coverage",0))<=1:
             raise ValueError("Invalid local extraction coverage contract")
     df=pd.read_parquet(path)
+    illegal={"date","date_utc","year","storm_id","event_id",
+             "observed_news_onset","reporting_propensity"}
+    illegal.update(k for k in df.columns if any(str(k).startswith(prefix)
+                   for prefix in PROHIBITED_WORDS))
+    forbidden=illegal.intersection(df.columns)
+    if forbidden:
+        raise ValueError("Daily/annual/event fields belong outside frozen static GF10: "+str(sorted(forbidden)))
     if "grid_id" not in df:raise ValueError("Local source missing original GF10 IDs")
     df=df.copy();df.grid_id=df.grid_id.astype(str)
     if df.grid_id.duplicated().any():raise ValueError("Duplicated GF10 cell in "+str(path))
@@ -101,6 +108,8 @@ def _read_source(path,kind,n_expected):
             matches=[v for v in raster_meta if v.get("name")==key]
             if not matches or any(str(v.get("data_year"))!=STATIC_EPOCH[key] for v in matches):
                 raise ValueError("Local native source has incompatible epoch for "+key)
+            if any(v.get("data_source")!=LOCAL_SEMANTICS[key][1] for v in matches):
+                raise ValueError("Local native data family does not match metric for "+key)
             cov_key="coverage_"+key
             if cov_key not in df:raise ValueError("Local source lacks per-cell pixel coverage "+key)
             cov=pd.to_numeric(df[cov_key],errors="coerce")
@@ -126,6 +135,8 @@ def _number(series,name):
         raise ValueError("Historic built growth must be [-1,1]")
     if name in NONNEG and (observed<0).any():
         raise ValueError("Negative exposure/terrain "+name)
+    if name=="slope_deg" and (observed>90).any():
+        raise ValueError("Slope in degrees exceeds 90")
     if name.endswith("_area_km2_2020") and (observed>100.1).any():
         raise ValueError("2020 GF10 area exceeds 100km²: "+name)
     return x.astype(float)
@@ -189,6 +200,7 @@ def assemble(root,grid,tag,baseline=None,locals=None,
     if len(inputs)>100:raise ValueError("Split local extract files into batches")
     seen_files=set()
     out=gf[["grid_id","urban_fraction_2020"]].set_index("grid_id")
+    out["urban_fraction_2020_source"]="FROZEN_GF10_2020_SMOD"
     trusted=out.index
     provenance={k:pd.Series("NOT_OBSERVED",index=trusted,dtype="object")
                 for k in STATIC_EPOCH if k!="urban_fraction_2020"}
@@ -308,7 +320,7 @@ def assemble(root,grid,tag,baseline=None,locals=None,
         future_annual_data_joined=False,daily_weather_joined=False,
         report_outcome_joined=False,
         zero_filled_missing=False,GEE_jobs_submitted=0,download_jobs=0,
-        conflicts=0,global_scope_complete=False,
+        conflicts=0,n_conflicts=0,global_scope_complete=False,
         publication_ready=False)
     atomic_json(outdir/"fig2_local_static_qc.json",qc)
     # Compatibility is still NOT the old fig2_indicators GF10 QC gate;
