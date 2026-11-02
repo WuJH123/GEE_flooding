@@ -16,6 +16,7 @@ dependencies = [
 [project.optional-dependencies]
 test = ["pytest>=8"]
 local = ["exactextract>=0.3,<0.4"]
+climate = ["xarray>=2024.3", "netCDF4>=1.6.5", "h5netcdf>=1.3"]
 
 [project.scripts]
 gee-flooding = "gee_flooding.cli:main"
