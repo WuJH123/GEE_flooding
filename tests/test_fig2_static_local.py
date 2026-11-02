@@ -73,7 +73,7 @@ def test_local_static_wide_reuses_2020_built_and_multiple_native_sources(tmp_pat
     assert not np.isfinite(pd.to_numeric(x["built_growth_2000_2020"])).any()==False
     dictionary=pd.read_csv(folder/"fig2_static_indicator_dictionary.csv")
     assert dictionary.loc[dictionary.indicator.eq("vegetation_fraction"),
-                          "source_epoch"].iloc[0]==2021
+                          "source_epoch"].iloc[0]=="2021"
     assert dictionary.loc[dictionary.indicator.eq("hand_m"),
                           "temporal_type"].iloc[0]=="static"
     assert (folder/"fig2_GF10_required_missing_by_grid.parquet").is_file()
@@ -107,7 +107,7 @@ def test_local_low_coverage_wrong_year_and_fake_annual_data_rejected(tmp_path):
     audit.write_text(json.dumps(obj))
     with pytest.raises(ValueError,match="incompatible epoch"):
         fig2_static_local.assemble(tmp_path,grid,"fig2_static_bad_year",base,[year])
-    wrong=base/"bad.parquet"
+    wrong=base.parent/"bad.parquet"
     pd.DataFrame({"grid_id":["0_0"],"annual_rain_2024_mm":[100]}).to_parquet(wrong)
     with pytest.raises(ValueError,match="No recognized static"):
         fig2_static_local.assemble(tmp_path,grid,"fig2_static_bad_fields",wrong,[])
