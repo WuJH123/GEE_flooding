@@ -8,7 +8,7 @@ import pandas as pd
 from .paths import safe_output,atomic_json
 
 WEATHER=['grid_id','date','storm_id','city_id','rain_24h_mm','rain_3h_mm','api_7d_mm']
-STATIC=['grid_id','hand_m','slope_deg','urban_fraction_2020','vegetation_fraction']
+STATIC=['grid_id','hand_m','slope_deg','upstream_area_km2','urban_fraction_2020','vegetation_fraction']
 
 def assemble(root,weather,static,labels,tag=None):
     if tag is not None and not re.fullmatch(r"fig2_[A-Za-z0-9_-]+",tag):

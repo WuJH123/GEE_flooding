@@ -18,7 +18,7 @@ from scipy.spatial import cKDTree
 from .paths import safe_output, atomic_json
 
 WEATHER=["rain_24h_mm","rain_3h_mm","api_7d_mm","n_obs_24h","n_obs_7d"]
-STATIC=["hand_m","slope_deg","vegetation_fraction","built_fraction_2020",
+STATIC=["hand_m","slope_deg","upstream_area_km2","vegetation_fraction","built_fraction_2020",
         "built_neighbor_density","built_fragmentation","built_growth_2000_2020"]
 
 
@@ -265,8 +265,7 @@ def build(root, grid_path, grid_cities, labels, weather_dir, static_dir,
     storms[weather_cols+extras].to_parquet(output_weather,index=False)
     static=grid[["grid_id","urban_fraction_2020"]].merge(s,on="grid_id",
                                                           how="inner",validate="one_to_one")
-    static[["grid_id","hand_m","slope_deg","urban_fraction_2020",
-            "vegetation_fraction"]].to_parquet(output_static,index=False)
+    static.to_parquet(output_static,index=False)
     if static.grid_id.duplicated().any():raise ValueError("Duplicated GF10 static key")
     static.to_parquet(output_resilience,index=False)
     if exposure is not None:exposure.to_parquet(output_context,index=False)

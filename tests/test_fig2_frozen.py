@@ -24,6 +24,7 @@ def fake_paper(tmp_path):
                         "api_7d_mm":float(rng.uniform(0,120)),
                         "hand_m":float(rng.uniform(0,20)),
                         "slope_deg":float(rng.uniform(0,12)),
+                        "upstream_area_km2":float(rng.uniform(3,120)),
                         "urban_fraction_2020":float(rng.random()),
                         "vegetation_fraction":float(rng.random()),
                         "built_fraction_2020":float(rng.random()),
@@ -76,6 +77,18 @@ def test_frozen_2024_25_and_independent_city_exclusion(tmp_path,monkeypatch):
     assert set(metrics.model)==set(fig2_frozen.CORE)
     assert set(metrics.comparison)==set(comparisons)
     assert (out/"Figure2_frozen_prospective_support.pdf").exists()
+    scores=pd.read_parquet(out/"fig2_frozen_m4_news_proxy_predictions.parquet")
+    assert {"score_M0_rain","score_M4_growth"} <= set(scores)
+    from gee_flooding import fig2_publication
+    meta=pd.read_csv(audit)
+    meta["koppen_broad"]=["A" if k%2 else "B" for k in range(len(meta))]
+    mp=tmp_path/"city_meta.csv"
+    meta.to_csv(mp,index=False)
+    publication=fig2_publication.make(tmp_path,out,panel,mp,
+                          tag="fig2_frozen_fivepanels",algorithm="logistic")
+    assert publication["status"]=="FIG2_FROZEN_NEWS_PROXY_ONLY"
+    assert (tmp_path/"outputs"/"fig2_frozen_fivepanels"/
+            "Figure2_a_e_news_proxy.pdf").exists()
     with pytest.raises(FileExistsError):
         fig2_frozen.run(tmp_path,panel,audit,contract,tag="fig2_frozen_synthetic",
                         algorithms=("logistic",))
