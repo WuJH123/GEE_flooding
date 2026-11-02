@@ -102,7 +102,7 @@ def extract(root,grid,files,variables,tag):
     if not pairs or len(pairs)>6 or any(not v or not k for k,v in pairs.items()):
         raise ValueError("Explicit source-variable:output-variable mapping required")
     if any(v not in {"rain_d_mm","precipitation_cnt","rain_3h_mm",
-                     "soil_water_0_7cm","soil_water_7_28cm","temperature_2m_k"}
+                     "soil_water_0_7cm","soil_water_7_28cm","temperature_2m_c"}
            for v in pairs.values()):
         raise ValueError("Only approved Figure2 variables")
     rows=[];cached={}
@@ -131,6 +131,9 @@ def extract(root,grid,files,variables,tag):
                 # Essential unit audit for primary NASA daily, no 24x/0.5x duplication
                 if target=="rain_d_mm" and data.attrs.get("units") not in ("mm/day","mm d-1","mm"):
                     raise ValueError("Daily NASA precipitation source units must be mm/day")
+                if target=="temperature_2m_c" and data.attrs.get("units") not in (
+                    "K","kelvin","degC","C","celsius"):
+                    raise ValueError("ERA5-Land temperature unit must be K or degC")
             days=pd.to_datetime(ds[time_name].values,utc=True).tz_localize(None).normalize()
             if pd.Index(days).has_duplicates:raise ValueError("Duplicate NetCDF UTC days")
             for t,day in enumerate(days):
@@ -151,7 +154,11 @@ def extract(root,grid,files,variables,tag):
                         if not np.isfinite(arr).all():
                             row[alias]=np.nan
                         else:
-                            row[alias]=float(np.dot(arr,areas)/areas.sum())
+                            value=float(np.dot(arr,areas)/areas.sum())
+                            if alias=="temperature_2m_c" and (
+                                da.attrs.get("units") in ("K","kelvin")):
+                                value-=273.15
+                            row[alias]=value
                     rows.append(row)
     data=pd.DataFrame(rows)
     # Several different source variables from same file share row IDs:
