@@ -89,3 +89,26 @@ def test_cf_latlon_projected_area_sum(tmp_path):
         "fig2_cf_fixture")
     assert output.rain_d_mm.iloc[0]==pytest.approx(10,abs=.001)
     assert output.precipitation_cnt.iloc[0]==pytest.approx(48,abs=.001)
+
+
+def test_true_rolling_3h_uses_six_bin_rain_rate_and_no_fake_hours(tmp_path):
+    from gee_flooding import fig2_rolling3h
+    start=pd.Timestamp("2024-07-01")
+    times=pd.date_range(start-pd.Timedelta(minutes=150),
+                        start+pd.Timedelta(hours=23,minutes=30),freq="30min")
+    x=pd.DataFrame({"grid_id":["0_0"]*len(times),
+                    "timestamp_utc":times,
+                    "precipitation_rate_mm_h":[2.0]*len(times)})
+    p=tmp_path/"halfhour.parquet"
+    x.to_parquet(p,index=False)
+    q=fig2_rolling3h.build(tmp_path,[p],"2024-07-01","2024-07-01",
+                            "fig2_rolling_fixture")
+    assert q["n_gf10_days"]==1
+    df=pd.read_parquet(tmp_path/"data"/"derived"/"fig2_rolling_fixture"/
+                       "fig2_daily_rolling_3h_max_GF10.parquet")
+    assert df.rain_3h_mm.iloc[0]==pytest.approx(6.0)
+    x=x.iloc[1:].copy()
+    x.to_parquet(p,index=False)
+    with pytest.raises(ValueError,match="Incomplete"):
+        fig2_rolling3h.build(tmp_path,[p],"2024-07-01","2024-07-01",
+                              "fig2_rolling_missing")
