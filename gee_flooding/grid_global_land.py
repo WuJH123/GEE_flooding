@@ -276,8 +276,11 @@ def build(root,source,resolution="f",legacy=None,tag="gf10_global_land_gshhg_f_v
         if not 110_000_000<=world_area<=165_000_000:
             raise ValueError(f"Global GSHHG apparent land area {world_area:,.0f} km2 "
                              "cannot be the full land geography; inspect dateline and Antarctica")
-        if frame.loc[frame.zone.eq("N")].empty or frame.loc[frame.zone.eq("S")].empty:
-            raise ValueError("Missing >86N Greenland or Antarctic polar land zone")
+        # The world's northernmost verified permanent land is at ~83.665N,
+        # INSIDE EPSG6933. Consequently an EMPTY N (>86N) zone is correct!
+        # Antarctica below 86S is nonempty and MUST be accounted for.
+        if frame.loc[frame.zone.eq("S")].empty:
+            raise ValueError("Missing Antarctic south-polar grounding-line land")
     sum_out={z:float(frame.loc[frame.zone.eq(z),"land_area_km2"].sum()*1e6) for z in ZONES}
     comparison={}
     for zone,v in areas.items():
