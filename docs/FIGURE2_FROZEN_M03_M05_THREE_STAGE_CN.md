@@ -130,3 +130,12 @@ M03输出到 data\derived\fig2_daily_real182_v1，包括 storm_exposure_weather.
 现有182格试验通常可能没有足够新闻正例来通过以上门槛。遇到拒绝不能人为降低门槛，应扩大开发期冻结的城市和气候带样本，且不因2024–25新闻数量选择样本。
 
 本流程没有连接用户E:/实际数据，也没有提交真实GEE任务或下载NASA/CDS数据。GitHub CI只验证代码与合成数据，不是已经得到发表级Fig2结果。
+
+
+### 额外国家留出、气候留出和多随机种子的诊断（Supplement）
+
+冻结前瞻Fig2_frozen的主比较是2021–23训练、2024–25新/旧城市测试以及开发期留出城市。国家和气候带留出不能仅靠这三个分组自称完成；使用已有Fig2 GROUPS扩展诊断，训练和测试还须保持无公共气象事件ID。这一诊断随机按整组留出，必须标成开发期或跨期的辅助诊断，而不是取代正式前瞻评价。
+
+    & $PY -m gee_flooding.fig2 --root $ROOT --panel $PANEL --contract "$DER\fig2_weather_provenance.json" --cities $CITYMETA --grid-cities $UCDB --tag fig2_country_climate_group_diagnostic_v1
+
+重点查看输出 fig2_ablation_generalization.csv 和 fig2_invalid_splits.csv。无效的留出（样本太少、阳性不足）必须保留失败原因，不能改为随机行拆分。若国家/气候带元数据不完整，先从官方UCDB补齐，而不是制造 Unknown。纸面M1–M4差值应始终采用同一测试集和相同的最小资料覆盖要求。
