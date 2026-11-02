@@ -82,13 +82,17 @@ def make(root, frozen_dir,panel,city_meta,tag="fig2_publication_news_v1",
     for col in ("rain_24h_mm","hand_m","built_fraction_2020"):
         if zz[col].nunique()<3:
             raise ValueError("No variation for Figure2 interaction: "+col)
-        zz[col+"_tercile"]=pd.qcut(zz[col].rank(method="first"),3,labels=["low","mid","high"])
+        bins=3 if col=="rain_24h_mm" else 2
+        labs=["low","mid","high"] if bins==3 else ["low","high"]
+        zz[col+"_tercile"]=pd.qcut(zz[col].rank(method="first"),bins,labels=labs)
     interaction=zz.groupby(["rain_24h_mm_tercile","hand_m_tercile",
                              "built_fraction_2020_tercile"],observed=True).agg(
        n=("observed_news_onset","size"),
        reported=("observed_news_onset","sum"),
        news_rate=("observed_news_onset","mean")).reset_index()
     interaction.loc[interaction.n.lt(20),"news_rate"]=np.nan
+    if int(interaction.news_rate.notna().sum())<3:
+        raise ValueError("Figure2e interaction cells underpowered; enlarge frozen city/storm sample")
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -140,10 +144,10 @@ def make(root, frozen_dir,panel,city_meta,tag="fig2_publication_news_v1",
         ax=axe[idx]
         sub=interaction.loc[interaction.rain_24h_mm_tercile.eq(rainlevel)]
         matrix=sub.pivot(index="hand_m_tercile",columns="built_fraction_2020_tercile",
-                         values="news_rate").reindex(index=["low","mid","high"],
-                                                       columns=["low","mid","high"])
+                         values="news_rate").reindex(index=["low","high"],
+                                                       columns=["low","high"])
         ax.imshow(matrix.to_numpy(float),vmin=0,vmax=.3,cmap="viridis")
-        ax.set_xticks(range(3),["L","M","H"]);ax.set_yticks(range(3),["L","M","H"])
+        ax.set_xticks(range(2),["L","H"]);ax.set_yticks(range(2),["L","H"])
         ax.set_title(f"e  Rain {rainlevel}",fontsize=10)
         ax.set_xlabel("Built");ax.set_ylabel("HAND")
     fig.suptitle("Figure 2  |  Rain-conditioned NEWS REPORT response (NOT observed pluvial flood risk)")
