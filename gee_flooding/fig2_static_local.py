@@ -200,7 +200,6 @@ def assemble(root,grid,tag,baseline=None,locals=None,
     if len(inputs)>100:raise ValueError("Split local extract files into batches")
     seen_files=set()
     out=gf[["grid_id","urban_fraction_2020"]].set_index("grid_id")
-    out["urban_fraction_2020_source"]="FROZEN_GF10_2020_SMOD"
     trusted=out.index
     provenance={k:pd.Series("NOT_OBSERVED",index=trusted,dtype="object")
                 for k in STATIC_EPOCH if k!="urban_fraction_2020"}
@@ -265,6 +264,7 @@ def assemble(root,grid,tag,baseline=None,locals=None,
         if key in out and key!="urban_fraction_2020":
             out[key+"_source"]=provenance[key].where(out[key].notna(),"NOT_OBSERVED")
     out=out.reset_index()
+    out["urban_fraction_2020_source"]="FROZEN_GF10_2020_SMOD"
     fieldrows=[]
     cat=catalog().set_index("name")
     for key,epoch in STATIC_EPOCH.items():
