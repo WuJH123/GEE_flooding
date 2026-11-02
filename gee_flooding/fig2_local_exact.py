@@ -30,6 +30,9 @@ AREA_M2=10000.0**2
 SUPPORTED={
     "hand_m":("mean", "MERIT_HYDRO","static"),
     "elevation_m":("mean","MERIT_HYDRO","static"),
+    "slope_deg":("mean","VERIFIED_DEM_SLOPE_DEGREES","static"),
+    "built_neighbor_density":("mean","GHSL_BUILT_S_VERIFIED_MORPHOLOGY","2020"),
+    "built_fragmentation":("mean","GHSL_BUILT_S_VERIFIED_MORPHOLOGY","2020"),
     "upstream_area_km2":("mean","MERIT_HYDRO","static"),
     "river_water_fraction":("class_fraction","MERIT_HYDRO","static"),
     "vegetation_fraction":("class_fraction","ESA_WORLDCOVER_V200","2021"),
@@ -87,6 +90,15 @@ def validate_variable(entry):
                 "built_fraction_2020","built_nres_fraction_2020","built_fraction_2000"}:
         if entry.get("native_units")!="m2_per_native_pixel":
             raise ValueError(name+": GHSL BUILT-S must be source m2 per native pixel")
+    if name=="slope_deg" and (entry.get("native_units")!="degrees"
+         or entry.get("derivation_checked") is not True):
+        raise ValueError("Slope requires independently verified DEM-derived degrees and method")
+    if name in ("built_neighbor_density","built_fragmentation"):
+        expected_kernel=1500 if name=="built_neighbor_density" else 1000
+        if (entry.get("native_units")!="fraction"
+            or entry.get("focal_kernel_m")!=expected_kernel
+            or entry.get("derivation_checked") is not True):
+            raise ValueError("GHSL 100m focal morphology kernel and fraction must be source-audited")
     if name=="population_count_2020" and entry.get("native_units")!="people_per_native_pixel":
         raise ValueError("Population input must be counts per native pixel, not density")
     if name=="built_volume_m3" and entry.get("native_units")!="m3_per_native_pixel":
@@ -176,6 +188,10 @@ def combine_contributions(parts,grids,name,kind,min_coverage=0.95):
         elif kind=="class_fraction":val=e["class_weight"]/e["count"]
         elif kind in ("mean","native_fraction"):val=e["sum"]/e["count"]
         else:val=e["sum"]*CELL_SUM_FACTOR[name]
+        if np.isfinite(val) and name in ("built_neighbor_density","built_fragmentation") and not 0<=val<=1:
+            raise ValueError(name+": morphological fraction/std not in [0,1]")
+        if np.isfinite(val) and name=="slope_deg" and not 0<=val<=90:
+            raise ValueError("DEM slope in degrees out of [0,90]")
         if np.isfinite(val) and name in FRACTIONS and not -1e-5<=val<=1.00001:
             raise ValueError(name+": fraction outside [0,1]: "+str(val))
         if np.isfinite(val) and name in ("population_count_2020","built_area_km2_2020",
