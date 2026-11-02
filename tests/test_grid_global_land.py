@@ -34,7 +34,8 @@ def create_source(tmp_path):
 
 def test_source_includes_small_island_and_hierarchical_holes(tmp_path):
     source=create_source(tmp_path)
-    data=build(tmp_path,source,resolution="f",tag="gf10_fixture_global")
+    data=build(tmp_path,source,resolution="f",tag="gf10_fixture_global",
+               bounds=(-180,-90,180,90))
     assert data["n_GF10_land_cells"]>0
     assert data["n_by_zone"]["N"]>0
     assert data["n_by_zone"]["S"]>0
