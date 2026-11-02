@@ -218,6 +218,8 @@ def run(root,panel,city_audit,contract,tag="fig2_frozen_2021_2025",
                     p["algorithm"]=algorithm
                     p["comparison"]=comparison
                     p["score_news_proxy"]=scores
+                    p["score_M0_rain"]=yprob["M0_rain"]
+                    p["score_M4_growth"]=scores
                     preds.append(p)
             for m in CORE[1:]:
                 a=next(i for i in metrics if i["comparison"]==comparison and
