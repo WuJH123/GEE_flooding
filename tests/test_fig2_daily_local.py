@@ -14,7 +14,7 @@ def test_frozen_daily_utc_exposure_independent_of_news_and_prior_7days(tmp_path)
     static=tmp_path/"static";static.mkdir()
     s=static/"fig2_GF10_resilience_indicators.parquet"
     pd.DataFrame({"grid_id":["0_0","1_0"],"urban_fraction_2020":[.2,.6],
-        "hand_m":[2,4],"slope_deg":[1,2],"vegetation_fraction":[.25,.5],
+        "hand_m":[2,4],"slope_deg":[1,2],"upstream_area_km2":[20,40],"vegetation_fraction":[.25,.5],
         "built_fraction_2020":[.2,.4],"built_neighbor_density":[.3,.4],
         "built_fragmentation":[.1,.1],
         "built_growth_2000_2020":[.08,.12]}).to_parquet(s,index=False)
