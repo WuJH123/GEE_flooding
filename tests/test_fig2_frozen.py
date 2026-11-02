@@ -24,6 +24,7 @@ def fake_paper(tmp_path):
                         "api_7d_mm":float(rng.uniform(0,120)),
                         "hand_m":float(rng.uniform(0,20)),
                         "slope_deg":float(rng.uniform(0,12)),
+                        "upstream_area_km2":float(rng.uniform(3,120)),
                         "urban_fraction_2020":float(rng.random()),
                         "vegetation_fraction":float(rng.random()),
                         "built_fraction_2020":float(rng.random()),
