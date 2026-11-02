@@ -84,7 +84,9 @@ def _grid_weights(g,lat,lon):
     return rows
 
 
-def extract(root,grid,files,variables,tag):
+def extract(root,grid,files,variables,tag,time_step="daily"):
+    if time_step not in ("daily","halfhour"):
+        raise ValueError("time-step must be daily or halfhour")
     if not re.fullmatch(r"fig2_[a-zA-Z0-9_-]+",tag):
         raise ValueError("Use unique fig2_* output version")
     try:
@@ -102,6 +104,7 @@ def extract(root,grid,files,variables,tag):
     if not pairs or len(pairs)>6 or any(not v or not k for k,v in pairs.items()):
         raise ValueError("Explicit source-variable:output-variable mapping required")
     if any(v not in {"rain_d_mm","precipitation_cnt","rain_3h_mm",
+                     "precipitation_rate_mm_h",
                      "soil_water_0_7cm","soil_water_7_28cm","temperature_2m_c"}
            for v in pairs.values()):
         raise ValueError("Only approved Figure2 variables")
@@ -129,12 +132,19 @@ def extract(root,grid,files,variables,tag):
                 if dims!={time_name,lat_name,lon_name}:
                     raise ValueError(f"Unexpected extra dimensions {data.dims} in {original}")
                 # Essential unit audit for primary NASA daily, no 24x/0.5x duplication
+                if target=="precipitation_rate_mm_h" and data.attrs.get("units") not in ("mm/hr","mm/h","mm hour-1"):
+                    raise ValueError("NASA half-hour input must be precipitation rate in mm/h")
                 if target=="rain_d_mm" and data.attrs.get("units") not in ("mm/day","mm d-1","mm"):
                     raise ValueError("Daily NASA precipitation source units must be mm/day")
                 if target=="temperature_2m_c" and data.attrs.get("units") not in (
                     "K","kelvin","degC","C","celsius"):
                     raise ValueError("ERA5-Land temperature unit must be K or degC")
-            days=pd.to_datetime(ds[time_name].values,utc=True).tz_localize(None).normalize()
+            days=pd.to_datetime(ds[time_name].values,utc=True).tz_localize(None)
+            if time_step=="daily":
+                days=days.normalize()
+            else:
+                if any((d.minute not in (0,30) or d.second!=0) for d in days):
+                    raise ValueError("Source must use aligned 30-min UTC timestamps")
             if pd.Index(days).has_duplicates:raise ValueError("Duplicate NetCDF UTC days")
             for t,day in enumerate(days):
                 # Only selected native pixel slices, not full global raster
@@ -143,7 +153,8 @@ def extract(root,grid,files,variables,tag):
                     values[alias]=ds[source].isel({time_name:t}).transpose(
                         lat_name,lon_name)
                 for gid,items in weights:
-                    row={"grid_id":gid,"date":day}
+                    row={"grid_id":gid,
+                         "date" if time_step=="daily" else "timestamp_utc":day}
                     il=[p[0] for p in items];io=[p[1] for p in items]
                     areas=np.asarray([p[2] for p in items],float)
                     for alias,da in values.items():
@@ -164,7 +175,8 @@ def extract(root,grid,files,variables,tag):
     # Several different source variables from same file share row IDs:
     # group by grid/date preserving each source field, BUT independent files
     # may not overlap same variable/day with inconsistent data.
-    if data.duplicated(["grid_id","date"]).any():
+    key="date" if time_step=="daily" else "timestamp_utc"
+    if data.duplicated(["grid_id",key]).any():
         # This module takes one source family at a time. Repeated time
         # or overlapping files are rejected rather than silently averaging.
         raise ValueError("Duplicate GF10×UTC day across NetCDF files: split sources, drop overlap")
@@ -172,12 +184,15 @@ def extract(root,grid,files,variables,tag):
     output=safe_output(root,"data/derived/"+tag)
     if output.exists():raise FileExistsError(output)
     output.mkdir(parents=True,exist_ok=False)
-    data.sort_values(["grid_id","date"]).to_parquet(output/"fig2_CF_daily_GF10.parquet",index=False)
+    outfile=("fig2_CF_daily_GF10.parquet" if time_step=="daily" else
+             "fig2_CF_halfhour_GF10.parquet")
+    data.sort_values(["grid_id",key]).to_parquet(output/outfile,index=False)
     atomic_json(output/"fig2_CF_daily_QC.json",{
         "status":"LOCAL_CF_AREA_WEIGHTED_NEEDS_TEMPORAL_COVERAGE_QC",
         "source_files":[str(x) for x in files],"source_variables":pairs,
         "n_rows":len(data),"n_GF10":data.grid_id.nunique(),
-        "min_date":str(data.date.min().date()),"max_date":str(data.date.max().date()),
+        "min_date":str(data[key].min().date()),"max_date":str(data[key].max().date()),
+        "source_time_step":time_step,
         "grid_crs":"EPSG:6933","no_GEE_jobs":True,
         "limitation":"Original 0.1-degree meteorology is not 10km measured resolution; source units and time basis require final audit"})
     return data
@@ -191,9 +206,10 @@ def main(argv=None):
     p.add_argument("--glob",default="*.nc4")
     p.add_argument("--variables",required=True,help="example precipitation:rain_d_mm,precipitation_cnt:precipitation_cnt")
     p.add_argument("--tag",default="fig2_imerg_daily_region_v1")
+    p.add_argument("--time-step",choices=["daily","halfhour"],default="daily")
     a=p.parse_args(argv)
     files=sorted(a.input_dir.glob(a.glob))
-    result=extract(a.root,a.grid,files,a.variables,a.tag)
+    result=extract(a.root,a.grid,files,a.variables,a.tag,a.time_step)
     print(json.dumps({"n_rows":len(result),"n_grids":result.grid_id.nunique()},
                      ensure_ascii=False,indent=2))
 if __name__=="__main__":main()
