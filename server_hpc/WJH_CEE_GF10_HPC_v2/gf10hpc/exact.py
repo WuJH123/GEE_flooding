@@ -47,13 +47,16 @@ def _exact_one(job):
                     raise ValueError('Only audited JRC Mollweide GHSL totals supported')
             z=zones.to_crs(src.crs)
             # Use source geometry, never fabricate raster category fractions.
-            ops=['count','frac'] if kind=='classes' else (
+            # IMPORTANT: exactextract 0.3.x PandasWriter does NOT accept
+            # map_fields (which frac_as_map internally expands into).
+            # Request paired native categorical arrays instead, preserving
+            # class labels rather than averaging raw SMOD integer codes.
+            ops=['count','unique','frac'] if kind=='classes' else (
                 ['count','mean(coverage_weight=area_spherical_m2)']
                 if kind=='mean' and src.crs.is_geographic else
                 ['count','mean'] if kind=='mean' else ['count','sum'])
             value=exact_extract(source,z,ops,include_cols=['grid_id'],
-                                output='pandas',
-                                output_options={'frac_as_map':True} if kind=='classes' else None)
+                                output='pandas')
             value.grid_id=value.grid_id.astype(str)
             if value.grid_id.duplicated().any():raise ValueError('Repeated GF10 from one TIFF')
             value=g[['grid_id']].merge(value,on='grid_id',how='left',validate='one_to_one')
@@ -63,12 +66,21 @@ def _exact_one(job):
             if np.any(overlap):
                 raise ValueError('Multiple source native GeoTIFFs intersect same GF10; deduplicate source tiles explicitly')
             if kind=='classes':
-                for i,clmap in enumerate(value['frac']):
+                for i,(keys,fractions) in enumerate(zip(value['unique'],value['frac'])):
                     if not valid[i]:continue
-                    if not isinstance(clmap,dict):raise ValueError('Expected frac_as_map dictionary')
-                    # Source native pixels 1000m, fraction of whole GF10
+                    if keys is None or fractions is None:
+                        raise ValueError('Nonempty categorical source has no unique/frac')
+                    categories=np.asarray(keys)
+                    shares=np.asarray(fractions,dtype=np.float64)
+                    if (len(categories)!=len(shares) or
+                        not np.all(np.isfinite(shares)) or
+                        (shares<-1e-8).any() or shares.sum()>1.00001):
+                        raise ValueError('Invalid native categorical unique/frac arrays')
+                    # count is source 1km partial-pixel coverage; transform
+                    # native class fractions to fraction of the full 100km² GF10.
+                    # Keep unmatched source codes out of modeled classes.
                     for c in classes:
-                        raw[str(c)][i]=float(clmap.get(c,clmap.get(str(c),0)))*w[i]/100.0
+                        raw[str(c)][i]=float(shares[categories==c].sum())*w[i]/100.0
             else:
                 col='sum' if kind in ('pixel_m2','pixel_count') else [k for k in value if 'mean' in k][0]
                 v=pd.to_numeric(value[col],errors='coerce').to_numpy(dtype=float)
@@ -149,7 +161,7 @@ def run(tile_root,source_files,profile_name,out,workers=16,max_tiles=None):
         'source_epoch':PROFILES[profile_name]['epoch'],
         'native_source':PROFILES[profile_name]['source_family'],
         'source_crs_pixel_coverage_not_global_land_polygon_mask':True,
-        'exactextract_fraction_map_api':'frac + output_options.frac_as_map',
+        'exactextract_fraction_map_api':'pandas unique + frac paired arrays (no frac_as_map)',
         'land_polygon_clipped':False,'publication_ready':False}
     json_write(out/'run_qc.json',qa)
     return qa
