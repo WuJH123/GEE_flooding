@@ -1,0 +1,263 @@
+{
+  "package": "CEE_GF10_GLOBAL_FULL_v2_3",
+  "generated": "2026-11-03",
+  "source": "v2.2 + GRIP4 native AAIGrid strict georeference repair and Shapely no-deprecations",
+  "files": {
+    "CHANGELOG_V21_CN.md": {
+      "sha256": "a04593fb8d4a929aa87efbb7771749b2bd041f97ed4150d1dbf53dc4715b154d",
+      "bytes": 2743
+    },
+    "CHANGELOG_V22_CN.md": {
+      "sha256": "088e7e1bac78191a0931200c56fe0982951964841a070a2572b08b4b67ed3dfb",
+      "bytes": 3834
+    },
+    "CHANGELOG_V23_CN.md": {
+      "sha256": "5161923a10574e8d233247415e60d7fa3f074d9e909a3067c1c8c0a122f8db05",
+      "bytes": 2857
+    },
+    "README_CN.md": {
+      "sha256": "fcedf100c3507fd49a3e24f8837e4fe038a0a8cad23432870b850867d3049cd0",
+      "bytes": 21046
+    },
+    "README_START_HERE_CN.md": {
+      "sha256": "4c6de54f1fcfdb74dba5f29c68294255381eb14bf9cbfeae5a542206856c9d26",
+      "bytes": 2927
+    },
+    "ceeall/__init__.py": {
+      "sha256": "8b8ae3168ce31da0e8518844f5cdb70ef2723e0836c50428c2634a56aff0609c",
+      "bytes": 107
+    },
+    "ceeall/__main__.py": {
+      "sha256": "2c6656c3c2256bd49e22764fc698537bf1be787752aac673a6328e1847eec8fc",
+      "bytes": 4440
+    },
+    "ceeall/assemble.py": {
+      "sha256": "920f1662da0d6e8960bb3df814023ad4b98ea948a9e326c9c977eb920636e8b4",
+      "bytes": 5930
+    },
+    "ceeall/common.py": {
+      "sha256": "acca94a796573a9a40af1d8de7ad3ca0e05eb402906724f1e12eef154afb5103",
+      "bytes": 3001
+    },
+    "ceeall/era.py": {
+      "sha256": "948337c8ff3075084b596740547e5588baafcaac8400077da078bc9884e41502",
+      "bytes": 6209
+    },
+    "ceeall/gisd.py": {
+      "sha256": "c023b44da925808add165fe12193948f1c2fc3b434cfc01b623e0e21ff7f1dc6",
+      "bytes": 10014
+    },
+    "ceeall/grid.py": {
+      "sha256": "672adeb7648d7abdaf8f02e493aafb10e7f3d53fd81d74c58565d521f7ac51de",
+      "bytes": 1279
+    },
+    "ceeall/inventory.py": {
+      "sha256": "469dfd71e5312e057e716811aafd3da775be2b0d6185da78578fcb90ba749b0d",
+      "bytes": 2496
+    },
+    "ceeall/morphology.py": {
+      "sha256": "ecd31de8a8ce7ee2518acc9994bea091190cf89c65226bd8132d5a74f9f193c1",
+      "bytes": 1699
+    },
+    "ceeall/observations.py": {
+      "sha256": "f729a983e129bd264d9a56c1a39c4cf994ee68214ab95b7eff455261df789f28",
+      "bytes": 1405
+    },
+    "ceeall/raster.py": {
+      "sha256": "9dbbb2940118eb92b951d526c577ebf3b8417b0e15b132b22efb44a04fc45493",
+      "bytes": 13854
+    },
+    "ceeall/source_audit.py": {
+      "sha256": "52e86b3ad0a3034089d7f054e4461c4382306c58b244410518e3335b5ba91957",
+      "bytes": 2665
+    },
+    "ceeall/staging.py": {
+      "sha256": "65745eb894b5741c2b88fdb4af73a9a193d69f00c640e894b2b95a43db64f296",
+      "bytes": 9254
+    },
+    "ceeall/status.py": {
+      "sha256": "7e1414bb037bfc43a54bd15bef9b5d40dc9b1fd81e5faf0d7277f9c15b4deaa6",
+      "bytes": 919
+    },
+    "ceeall/vector.py": {
+      "sha256": "1b03c2f59ca2e0e4a87946b807909848244e6c1d91665ec37d7421c9148774e4",
+      "bytes": 3298
+    },
+    "ceeprod/__init__.py": {
+      "sha256": "63b130dae3d774a8f0097e93af8fa5d304750bad6b12dce700a49c9a4c12ac84",
+      "bytes": 82
+    },
+    "ceeprod/__main__.py": {
+      "sha256": "fd1da9e69a34d88b409bde975de42d4e920693561910bc377989516cc7cc0494",
+      "bytes": 54
+    },
+    "ceeprod/assemble_full.py": {
+      "sha256": "428d57dea717d59f35e71db32229a6a8460c80ca18fbb92d0750ec5d81672593",
+      "bytes": 7822
+    },
+    "ceeprod/cli.py": {
+      "sha256": "a8825baa6960058a9e42e29a77049be8652eec5039e07f580b7f8e38ecfeb7ee",
+      "bytes": 3495
+    },
+    "ceeprod/dictionary.py": {
+      "sha256": "7bae1e375d73df6f0a1b3d4e927309066b2e1448b9bb021ff6f8dc2d45678a48",
+      "bytes": 3471
+    },
+    "ceeprod/discover.py": {
+      "sha256": "c3fce9e381a1bf0e7ae4672b3ba27bc8e5c3780ab4385f1451c4914f09e826be",
+      "bytes": 7860
+    },
+    "ceeprod/doctor.py": {
+      "sha256": "fe6b30d4d113b4d68a66d87a64a74aa3cf82c5194d0d6cad4c8de829723fcd9f",
+      "bytes": 4235
+    },
+    "ceeprod/era_wide.py": {
+      "sha256": "a8b3e43214e1fb8a76384cfcde4a138d38b889c4b9d1958ae84d32869961c5b5",
+      "bytes": 7388
+    },
+    "ceeprod/gisd_history.py": {
+      "sha256": "7a8a8b19c1abd23dd97a552f9ecd386ec5351dc067a8cf66fe49d7664696c454",
+      "bytes": 8599
+    },
+    "ceeprod/gridcache.py": {
+      "sha256": "8694f9a765dee4c6e528211bdb99ae53dff9f1a96a7b4206ea434dc90ce3e48e",
+      "bytes": 2090
+    },
+    "ceeprod/observations_full.py": {
+      "sha256": "f50996e4d9ae3f12f5f8d6566b5b9f3a2eeb42d1dcd62ba0ae483f6f8211cb01",
+      "bytes": 6783
+    },
+    "ceeprod/quality.py": {
+      "sha256": "419d37c28f7fa5f7424a8c49121b998f3ac727cba48ea66c044662a8ae42ad3a",
+      "bytes": 5241
+    },
+    "ceeprod/runner.py": {
+      "sha256": "9e8eb1a8741cd34aab1f1ee27a0602374bc348924ef325771f8418d73b17cb98",
+      "bytes": 15701
+    },
+    "ceeprod/shared.py": {
+      "sha256": "1d35f7ded39f2d1426989e46530fb083931cf5bb6623068847099e4dbfa6eddb",
+      "bytes": 1715
+    },
+    "ceeprod/source_attributes.py": {
+      "sha256": "13986d52254a11958e16b9915b3f4d1b27c90e9f5ce95f6c7a3f1f1a2dfb992e",
+      "bytes": 6665
+    },
+    "ceeprod/vector_full.py": {
+      "sha256": "2bf602276879320a81451b05ab69e78a4cb490b54ec85c9976383805b8ea00eb",
+      "bytes": 14775
+    },
+    "config/ALL_DATA_TASKS.csv": {
+      "sha256": "c37578f61a40ca14d98f8af91e78bc4b4190d90b006d28d42dae3653adc4e1a0",
+      "bytes": 5090
+    },
+    "requirements.txt": {
+      "sha256": "f93c7a2f60ca38ce700eef506da373cca130d0cbfc7efa7b12d93858a23986fd",
+      "bytes": 231
+    },
+    "scripts/00_prepare_full.ps1": {
+      "sha256": "4e36714293565c8de90b3ec41b4385ae9248aefb653cb5d214d75feeee85fa5d",
+      "bytes": 1641
+    },
+    "scripts/01_run_all_full.ps1": {
+      "sha256": "89687aac94433ba0a3e755233c4c4733dfea7ac007107a0560c986472b108488",
+      "bytes": 2489
+    },
+    "scripts/02_verify_all_full.ps1": {
+      "sha256": "f1cd82eb3f276611060ea5064ed490cb3d1f9de7d72df8c821c2cdd06627ba62",
+      "bytes": 470
+    },
+    "scripts/03_status_and_cpu.ps1": {
+      "sha256": "cf083a17295ddcb69fdb6b6171e05d595940360a4d3a44a6d7262dcc41cdd145",
+      "bytes": 536
+    },
+    "scripts/04_diagnose_gisd.ps1": {
+      "sha256": "9c678b1582f0f01ad3559e19699264610f9ebcfad3ced030d95529a0bd81cd3c",
+      "bytes": 535
+    },
+    "scripts/05_stage_gisd_only.ps1": {
+      "sha256": "10eadee4a5e052eb1509ac1cde10e45775f29ad9a685a9dd7cd031a7bb8ae411",
+      "bytes": 946
+    },
+    "scripts/06_validate_provider_sources.ps1": {
+      "sha256": "78ded019d56ded8fb4f6dc3e81fca9fe53b53a30baee418ee7501e9632976c97",
+      "bytes": 561
+    },
+    "scripts/07_resume_after_provider_fix.ps1": {
+      "sha256": "5604846c5022cea040c2657738f534fe0d2b6960f7bdac53a65c37b74d725d0c",
+      "bytes": 1443
+    },
+    "scripts/08_prepare_grip_crs.ps1": {
+      "sha256": "1372112d90565dd2b3625228119903bcb853c1af1bfb92dd0f4681f3dd65937e",
+      "bytes": 708
+    },
+    "scripts/09_resume_v23.ps1": {
+      "sha256": "227855d3809873f42fd279bfbb6bc718dbaa4ddf818df9291a3f358f7c90f9fe",
+      "bytes": 1197
+    },
+    "scripts/run_with_log.py": {
+      "sha256": "754a4fcc338a59942eae787e793eb251fdfaceb8c7b5344788c0463281cf2655",
+      "bytes": 2206
+    },
+    "scripts/verify_package.py": {
+      "sha256": "10d4fef191af73f1bbd5a26fdb8f34887939abb0a49957192175942504827b32",
+      "bytes": 730
+    },
+    "tests/test_common.py": {
+      "sha256": "c83b87a8ef410ef76efd4465abf58a86559f5ed02dd4db14a0c66c6f0a6905d3",
+      "bytes": 686
+    },
+    "tests/test_era_pilot_partition.py": {
+      "sha256": "a73f136c6c83c17028283b00d5a0561086d1b01470690475da57f7b4250d1653",
+      "bytes": 561
+    },
+    "tests/test_era_utils.py": {
+      "sha256": "33384326e12a63e30e3974f6a8fb338c2889a531ad5f72f94afab7d1757d3359",
+      "bytes": 271
+    },
+    "tests/test_fullprod_science.py": {
+      "sha256": "d6b2bcfd42110daa7c62b24af3d1f5da3997299efa5a3637739066fa03389056",
+      "bytes": 2151
+    },
+    "tests/test_fullprod_vector_integration.py": {
+      "sha256": "69fa7b94adfc19fb19297e1bb3779a69fd7ed2d208c993153c4b170737e251e5",
+      "bytes": 2596
+    },
+    "tests/test_gisd_bounds.py": {
+      "sha256": "bbb86e3e98885f772d49f00252ae93ef065b599c56d014f196644cc6cdeb2137",
+      "bytes": 803
+    },
+    "tests/test_gisd_exact_optional.py": {
+      "sha256": "80ea815e076289849c7c10761a625b21a50bb7f12928751d88498b53b2e3ae99",
+      "bytes": 1054
+    },
+    "tests/test_gmted_mean.py": {
+      "sha256": "253b187ea92aa391d58ab5ac437278cd005b6f25ffc9605c1f5ed9908278afaa",
+      "bytes": 1183
+    },
+    "tests/test_inventory_stage.py": {
+      "sha256": "141fb97735fa86fd4dea6965f715edf6f561dd294f4e5a6cdfd3e2efc43fef4d",
+      "bytes": 1608
+    },
+    "tests/test_morphology.py": {
+      "sha256": "10d73531ac1e086367b0b7e38dd6ae2166469d021c09d582770ea4614f136aac",
+      "bytes": 1001
+    },
+    "tests/test_raster_regression_optional.py": {
+      "sha256": "8e7a2a76989d7d49ccefb1c86786d6f63eb892fdeb05144181d6b0dbd16dd051",
+      "bytes": 1433
+    },
+    "tests/test_v21_resume_and_errors.py": {
+      "sha256": "d73248f5cf938517d5c279884ca94b958e004d2349c4825e6f0b2b4fe2e55866",
+      "bytes": 4978
+    },
+    "tests/test_v22_provider_discovery.py": {
+      "sha256": "e730eba80f426fc95cd6c4db5ad4aacf576ffe443a19bcd407d7032d8cad15d5",
+      "bytes": 6587
+    },
+    "tests/test_v23_grip_ascii_georeference.py": {
+      "sha256": "b9121c4d85a78ce6fd62a090a0c6be31baf62a4937c0929a2ee941fda6965a03",
+      "bytes": 3130
+    }
+  }
+}
