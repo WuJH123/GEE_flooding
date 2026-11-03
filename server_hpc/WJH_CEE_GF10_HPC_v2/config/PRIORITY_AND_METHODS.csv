@@ -1,0 +1,23 @@
+priority,dataset,source_location,temporal_type,main_indicator,processing_engine,original_resolution,source_audit,large_download_required
+P0,GF10_NONANTARCTIC,E:/WJH_CEE/gf10_global_nonantarctic_land.parquet,static,grid_id land_area_km2,grid audit / tiling,10km,FROZEN,NO
+P0,GHSL_BUILT_S_2000,E:/WJH_CEE/data/raw/ghsl,epoch_2000,built_area_km2_2000,raster-exact preferred / fast pilot,1000m,JRC native equal-area and m2-per-pixel,NO
+P0,GHSL_BUILT_S_2020,E:/WJH_CEE/data/raw/ghsl,epoch_2020,built_area_km2_2020,raster-exact preferred / fast pilot,1000m,JRC native equal-area and m2-per-pixel,NO
+P0,GHSL_POP_2020,E:/WJH_CEE/data/raw/ghsl,epoch_2020,population_count_2020,raster-exact preferred / fast pilot,1000m,people-per-pixel,NO
+P0,GHSL_NRES_2020,E:/WJH_CEE/data/raw/ghsl,epoch_2020,built_nres_area_km2_2020,raster-exact preferred / fast pilot,1000m,NRES not above total,NO
+P0,GHSL_SMOD_2020,E:/WJH_CEE/data/raw/ghsl,epoch_2020,urban_class_area_fracs,raster-exact preferred / fast pilot,1000m,classes10/11/12/13/21/22/23/30,NO
+P0,GMTED2010,E:/WJH_CEE/CEE数据,static,elevation slope roughness tpi tri,raster-exact / fast pilot,30arcsec,mean-vs-max elevation metadata conflict; slope units unverified,NO
+P0,GRIP4_DENSITY,E:/WJH_CEE/CEE数据,source_static,road_density_m_per_km2,raster-exact,5arcmin,coarse native resolution / not fine road vector,NO
+P0,GEOboundaries_ADM0,E:/WJH_CEE/CEE数据,source_static,iso3_country,vector-centroid,vector,coast/islands centre can be ocean; use null if uncovered,NO
+P1,ERA5EX_V4,E:/WJH_CEE/CEE数据,annual_1950_2025,rx1day rx5day r95p r99p warm_heavy_rain,era5ex,0.1degree,annual and time leakage if event-year predictor,NO
+P1,WORLDCLIM2.1,E:/WJH_CEE/CEE数据,1970-2000_reference,bio1 bio12 bio15 bio18 bio19,raster-exact / fast pilot,30arcsec,original native units and period,NO
+P1,GISD30,E:/WJH_CEE/CEE数据,epoch_2000_2020,impervious_fraction2000_2020,gisd-prep + raster-fast,30m native to 1km,classes 0..8 binary before warp; archive tiles 953 vs paper 961,NO
+P1,UCDB_R2024A_V1_2,E:/WJH_CEE/CEE数据,urban_entity_reference,city_id metadata,vector-centroid city-only; no invented spatial uniform cell attribute,vector,version name and future projected 2025 fields,NO
+P1,BASINATLAS_V10,E:/WJH_CEE/CEE数据,catchment_static,HYBAS_ID basin attributes,vector-centroid lev06 or lev07; NOT cell HAND,subbasin_vector,field semantic audit with official catalog,NO
+P2,RIVERATLAS_V10,E:/WJH_CEE/CEE数据,network_static,river proximity river segments,regional per-feature spatial index; not P0,vector 8477883 segments,need streaming per watershed,NO
+P2,GRIP4_VECTORS,E:/WJH_CEE/CEE数据,network_static,road length within GF10,vector batch (not in first step),vector 25758453 features,large run; benchmark tile ROI before global,NO
+P2,GROUNDSource,E:/WJH_CEE/data/raw/groundsource,news_event,geocoded news O,legacy observations pipeline separately,news polygons,never physical flood extent,NO
+P2,FLOOD_RECORDS,E:/WJH_CEE/CEE数据,reported_event,global major flood catalogue,independent event table,5503 features,CSV and GPKG same source; never double count,NO
+GEE_ONLY,MERIT_HYDRO,earthengine_data_catalog,static,HAND upa,region GEE official asset,90m,local spatial native source not in supplied inventory,YES
+GEE_ONLY,ESA_WORLDCOVER_2021,earthengine_data_catalog,epoch_2021,tree cropland water built landcover fractions,region GEE official asset,10m,global 117GB source not in local inventory,YES
+GEE_ONLY,IMERG_V07,earthengine_data_catalog,daily_2021_2025,3h 24h antecedent rain,region/time summarization GEE or local NASA,0.1degree 30min,do not produce fake 10km source resolution,YES
+GEE_ONLY,ERA5LAND_DAILY,earthengine_data_catalog,daily_2021_2025,antecedent soil moisture temp,region/time GEE or CDS daily,~9km,previous-day causal exposure,YES
