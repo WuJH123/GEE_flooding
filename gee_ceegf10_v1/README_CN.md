@@ -49,6 +49,17 @@ $ROOT=(Resolve-Path '.').Path
 
 后一条命令会强制要求第1条实际完成、可查询EECU和本地10km GeoTIFF坐标对齐QC，且通过**估算留有2倍裕量、静态来源不超过250h**的费用闸门。可以后续递增`--strip 2`等命令。WorldCover 由于10m数据量大，建议更晚启动，先完整核对真实10m试验表。
 
+## 全球12条带全部完成后的本地GF10指标连接
+
+完成全部12条带的 Drive GeoTIFF 下载后，按族复制到 `data\downloads\merit` 或 `data\downloads\worldcover`，确保文件名维持 `full_merit_strip_00_of_12.tif` 到 `...11_of_12.tif`（同理 WorldCover）。执行：
+
+```powershell
+.\scripts\07_merge_downloads.ps1 -Family merit
+.\scripts\07_merge_downloads.ps1 -Family worldcover
+```
+
+将严格核验 715 等价区域的完整GF10索引、EPSG6933 10km零原点、文件不重叠、全部1,395,471格正好出现一次、类别加总不大于有效覆盖分数；不自动填充缺测。输出 `data/derived/GF10_GEE_merit_20261103.parquet` 和 `...worldcover...parquet`，同目录 `.qc.json`。该步骤只支持GEE导出的完整100km² GF10值；沿海真正陆地裁剪仍须另行验证。
+
 ## 动态暴雨核验（此时只测试方法，不作为真实洪水事件）
 
 ```powershell
@@ -67,7 +78,7 @@ $ROOT=(Resolve-Path '.').Path
 - `reports/local_tif_verified_merit.json`：下载图像的EPSG6933、10km像元尺寸和(0,0)网格锚点检查。
 - `config/INDICATOR_CONTRACT.csv`：固定指标定义、时间戳、真实单位和论文声明限制。
 
-**与本地最终静态成果合并**：下载的GeoTIFF以10km、EPSG6933、原点0的完整格网像元编码；必须使用被冻结的`grid_x/grid_y`，按GF10中心坐标读取对应像元，再与本地Parquet的`grid_id`一对一连接；未完成沿海分母修正和跨数据源数值审计前不标记 `publication_ready=true`。本包当前仅自动实现了`validate-tif`源栅格空间检查，尚未自动实现全球GeoTIFF→GF10 Parquet全部指标连接，也不提前宣称全篇数据已经齐备。
+**与本地最终静态成果合并**：下载的GeoTIFF以10km、EPSG6933、原点0的完整格网像元编码；必须使用被冻结的`grid_x/grid_y`，按GF10中心坐标读取对应像元，再与本地Parquet的`grid_id`一对一连接；未完成沿海分母修正和跨数据源数值审计前不标记 `publication_ready=true`。本包同时实现`validate-tif`单片空间检查与`merge-static`完整12条带的GeoTIFF→GF10 Parquet精确格网映射；不提前宣称所有事件数据和沿海陆地裁剪已经齐备。
 
 ## 研究标准与进一步迭代
 
