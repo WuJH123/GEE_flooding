@@ -1,0 +1,24 @@
+family,source,band,GF10_output,unit,method,temporal,scope,publication_flag
+MERIT,MERIT/Hydro/v1_0_1,hnd,merit_hand_mean_m,m,weighted spatial mean,static 1987-2017,GF10 full-square,requires coastal and uncertainty QC
+MERIT,MERIT/Hydro/v1_0_1,upa,merit_upa_mean_km2,km2,weighted spatial mean,static 1987-2017,GF10 full-square,not local drain capacity
+MERIT,MERIT/Hydro/v1_0_1,upa,merit_upa_max_km2,km2,spatial maximum,static 1987-2017,GF10 full-square,not local drain capacity
+MERIT,MERIT/Hydro/v1_0_1,elv,merit_elv_mean_m,m,weighted spatial mean,static 1987-2017,GF10 full-square,requires uncertainty QC
+MERIT,MERIT/Hydro/v1_0_1,wat,merit_permanent_water_fraction,0..1,fraction of permanent-water pixels,static,GF10 full-square,not direct flood observation
+WorldCover,ESA/WorldCover/v200,Map,wc_10_fraction_fullcell,0..1,two-stage class fraction,2021,GF10 full-square,not coastal land denominator
+WorldCover,ESA/WorldCover/v200,Map,wc_20_fraction_fullcell,0..1,two-stage class fraction,2021,GF10 full-square,not coastal land denominator
+WorldCover,ESA/WorldCover/v200,Map,wc_30_fraction_fullcell,0..1,two-stage class fraction,2021,GF10 full-square,not coastal land denominator
+WorldCover,ESA/WorldCover/v200,Map,wc_40_fraction_fullcell,0..1,two-stage class fraction,2021,GF10 full-square,not coastal land denominator
+WorldCover,ESA/WorldCover/v200,Map,wc_50_fraction_fullcell,0..1,two-stage class fraction,2021,GF10 full-square,built cover != sewer connectivity
+WorldCover,ESA/WorldCover/v200,Map,wc_60_fraction_fullcell,0..1,two-stage class fraction,2021,GF10 full-square,not coastal land denominator
+WorldCover,ESA/WorldCover/v200,Map,wc_70_fraction_fullcell,0..1,two-stage class fraction,2021,GF10 full-square,not coastal land denominator
+WorldCover,ESA/WorldCover/v200,Map,wc_80_fraction_fullcell,0..1,two-stage class fraction,2021,GF10 full-square,not coastal land denominator
+WorldCover,ESA/WorldCover/v200,Map,wc_90_fraction_fullcell,0..1,two-stage class fraction,2021,GF10 full-square,not coastal land denominator
+WorldCover,ESA/WorldCover/v200,Map,wc_95_fraction_fullcell,0..1,two-stage class fraction,2021,GF10 full-square,not coastal land denominator
+WorldCover,ESA/WorldCover/v200,Map,wc_100_fraction_fullcell,0..1,two-stage class fraction,2021,GF10 full-square,not coastal land denominator
+IMERG,NASA/GPM_L3/IMERG_V07,precipitation,imerg_rolling3h_max_mm,mm,rolling six halfhour periods event day,per date UTC,event GF10,method-test only until real dated cases
+IMERG,NASA/GPM_L3/IMERG_V07,precipitation,imerg_event_utc_day_mm,mm,48 halfhour periods *0.5 hours,per date UTC,event GF10,needs observed count 48
+IMERG,NASA/GPM_L3/IMERG_V07,precipitation,imerg_pre7d_mm,mm,previous seven complete days,per date UTC,event GF10,needs observed count 336
+IMERG,NASA/GPM_L3/IMERG_V07,precipitation,imerg_pre30d_mm,mm,previous 30 complete days,per date UTC,event GF10,needs observed count 1440
+ERA5LAND,ECMWF/ERA5_LAND/DAILY_AGGR,volumetric_soil_water_layer_1,era5land_soilwater_l1_pre1d_m3m3,m3/m3,previous UTC day,per date UTC,event GF10,source 11km proxy
+ERA5LAND,ECMWF/ERA5_LAND/DAILY_AGGR,temperature_2m,era5land_t2m_pre1d_C,C,kelvin minus 273.15 previous UTC day,per date UTC,event GF10,source 11km proxy
+ERA5LAND,ECMWF/ERA5_LAND/DAILY_AGGR,total_precipitation_sum,era5land_pre1d_precip_mm,mm,m/day converted to mm,per date UTC,event GF10,source 11km proxy

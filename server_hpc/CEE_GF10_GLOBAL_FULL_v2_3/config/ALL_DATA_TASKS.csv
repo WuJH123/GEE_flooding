@@ -1,0 +1,29 @@
+﻿dataset,temporal_resolution,physical_definition,source,processing,priority,scientific_caution
+GHSL BUILT-S 2000,static,native 1km built area m²/pixel,hpc_exact_ghsl_built_2000_v2,AUTO_REUSE_715_GHSL_EXISTING_PER_PROFILE_NO_RERUN,P0,native exact; land-mask QA pending
+GHSL BUILT-S 2020,static,native 1km built area m²/pixel,hpc_exact_ghsl_built_2020_v2,AUTO_REUSE_715_GHSL_EXISTING_PER_PROFILE_NO_RERUN,P0,source measure not flood observation
+GHSL NRES 2020,static,nonresidential built m²/pixel,hpc_exact_ghsl_nres_2020_v2,AUTO_REUSE_715_GHSL_EXISTING_PER_PROFILE_NO_RERUN,P0,sum native m²
+GHSL POP 2020,static,population count/pixel,hpc_exact_ghsl_pop_2020_v2,AUTO_REUSE_715_GHSL_EXISTING_PER_PROFILE_NO_RERUN,P0,sum native population
+GHSL SMOD 2020,static,settlement class 10-30,hpc_exact_ghsl_smod_2020_v2,AUTO_REUSE_715_GHSL_EXISTING_PER_PROFILE_NO_RERUN,P0,"class fractions, not numeric mean"
+GMTED elevation,static,source mean elevation m,elevation_1KMmn_GMTEDmn.tif,AUTO_REUSE_FULL_715_OR_RESUME_ONLY_UNFINISHED,P0,user-verified mean; TIFF Maximum description conflict retained
+GMTED slope,static,source mean slope native,slope_1KMmn_GMTEDmd.tif,AUTO_REUSE_FULL_715_OR_RESUME_ONLY_UNFINISHED,P0,slope unit not assumed
+GMTED roughness,static,source mean roughness native,roughness_1KMmn_GMTEDmd.tif,AUTO_REUSE_FULL_715_OR_RESUME_ONLY_UNFINISHED,P0,source native units
+GMTED TPI,static,source mean topographic position index,tpi_1KMmn_GMTEDmd.tif,AUTO_REUSE_FULL_715_OR_RESUME_ONLY_UNFINISHED,P0,source native units
+GMTED TRI,static,source mean terrain ruggedness index,tri_1KMmn_GMTEDmd.tif,AUTO_REUSE_FULL_715_OR_RESUME_ONLY_UNFINISHED,P0,source native units
+WorldClim BIO1-19,climatology 1970-2000,bioclim indices native units,wc2.1_30s_bio.zip,AUTO_FULL_715_PER_NATIVE_RASTER_REUSE_COMPLETED_TILES,P0,check source units scale and NoData
+WorldClim monthly precip,climatology 1970-2000,mm per month,wc2.1_30s_prec.zip,AUTO_FULL_715_PER_NATIVE_RASTER_REUSE_COMPLETED_TILES,P0,month-of-year climatology; not actual month
+WorldClim tavg tmin tmax,climatology 1970-2000,temperature native; check scaling,wc2.1_30s_t*.zip,AUTO_FULL_715_PER_NATIVE_RASTER_REUSE_COMPLETED_TILES,P0,must validate temperature scale before manuscript
+WorldClim srad vapr wind,climatology 1970-2000,source native units,"wc2.1_30s_{srad,vapr,wind}.zip",AUTO_FULL_715_PER_NATIVE_RASTER_REUSE_COMPLETED_TILES,P1,monthly climatology
+ERA5-EX 34 indices,annual 1950-2025,source native annual indices,ERA5-EX v4.zip,AUTO_ALL_34_INDICES_ALL_COMMON_YEARS: 0.1degree source nearest match,P0,0.1 degree nearest source cell proxy; not native GF10
+GISD30 impervious,epoch 1985-2020,"classes 0-8; 1-4<=2000,1-8<=2020",GISD30_*.rar,AUTO_ALL_NATIVE_TILES: 8 dates 1985-2020 category true native pixel fractions,P1,30m native category; coast/source overlap QA
+GRIP4 density,static,m per km² at 5 arcmin native grid,GRIP4_density_total.zip,AUTO_FULL_715_NATIVE_RASTER,P1,coarse proxy only
+GRIP4 roads vector,static,network line length/types,GRIP4_global_vector_fgdb.zip,AUTO_FULL_715: discovered native GDB and clipped WGS84 geodesic length per GF10,P1_GLOBAL_REQUIRED,Global native road network full 715 tiles; provider source completeness and coastline validation required
+BasinATLAS v10,static,river basin geometry & attributes,BasinATLAS_Data_v10.gdb.zip,AUTO_FULL_715: original polygon overlap and full source attribute table,P1,basin upstream area not local GF10 catchment
+RiverATLAS v10,static,river reach network,RiverATLAS_Data_v10.gdb.zip,AUTO_FULL_715: discovered native RiverATLAS line layer and full geodesic line clipping,P1_GLOBAL_REQUIRED,long full-network computation optional
+geoBoundaries ADM0 ADM1,static,administrative polygon matching,geoBoundariesCGAZ_ADM*.zip,"AUTO_FULL_715: original admin0/admin1 polygon overlay, all matched long crosswalk",P0,Exact complete cell intersection; coastal land-only polygons still unavailable
+GHS UCDB 2024,static / year fields,urban centres and historical properties,GHS_UCDB_GLOBE_R2024A_V1_2.zip,AUTO_FULL_715: original polygon overlap and full source attribute table,P0,not all urban settlements; preserve city vs GF10 crosswalk
+Global Flood Records,event,"event metadata, no physical grid mask",Global_Flood_Records.csv,"AUTO_SOURCE_CATALOGUE: original flood event records, preserve fields",P1,not an independent pluvial flood true label
+Groundsource,event,report time and geocoded footprint,groundsource_2026.parquet,AUTO_STREAM_ALL_SOURCE_REPORTS: origin UUID/time and geocoded grid representative not inundation,P1,not covered by 35 local files; no synthetic flood labels
+MERIT Hydro,static,"HAND, flow accumulation, elevation",GEE asset,GEE follow-up,P0 gap,not in local 35 files
+ESA WorldCover,2021 map,landcover native 10m classes,GEE asset,GEE follow-up,P0 gap,not in local 35 files
+IMERG V07,event hourly/3h/24h,precipitation mm from mm/h * duration,GEE asset,GEE follow-up,P0 gap,"event-exposure panel, not static"
+ERA5-Land,daily,antecedent soil moisture,GEE asset,GEE follow-up,P0 gap,"event-exposure panel, not static"
