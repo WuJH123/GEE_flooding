@@ -14,6 +14,8 @@ jobs:
         run: python -m pip install -e '.[test,local,climate]'
       - name: Test
         run: python -m pytest -q
+      - name: Test Windows-server HPC package on Linux with actual PyArrow and ExactExtract
+        run: python -m pytest -q server_hpc/WJH_CEE_GF10_HPC_v2/tests
       - name: Validate CLI and configuration
         run: |
           python -m gee_flooding --help
