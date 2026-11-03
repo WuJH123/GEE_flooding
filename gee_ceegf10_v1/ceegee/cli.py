@@ -361,6 +361,14 @@ def guard_budget(args):
         raise SystemExit('BUDGET_LIMIT_REACHED: stop submitting new tasks; check Cloud quotas and monitoring')
 
 
+def merge_static(args):
+    from .merge import join_exports
+    c=read_cfg()
+    tif_dir=pathlib.Path(args.tif_dir) if args.tif_dir else HOME/'data'/'downloads'/args.family
+    out=HOME/'data'/'derived'/f'GF10_GEE_{args.family}_20261103.parquet'
+    print(json.dumps(join_exports(c['grid'],tif_dir,args.family,out,args.strips),ensure_ascii=False,indent=2))
+
+
 def main(argv=None):
     ap=argparse.ArgumentParser(description='CEE-GF10 v1 isolated pilot-gated Earth Engine production')
     s=ap.add_subparsers(dest='cmd',required=True)
@@ -376,10 +384,11 @@ def main(argv=None):
     p=s.add_parser('pilot-event');p.add_argument('--date',default='2023-06-01');p.add_argument('--cells',type=int,default=12)
     p=s.add_parser('validate-tif');p.add_argument('--file',required=True);p.add_argument('--family',choices=models.STATIC_FAMILIES)
     p=s.add_parser('guard-budget');p.add_argument('--max-task-hours',type=float,default=25.0);p.add_argument('--max-run-hours',type=float,default=300.0);p.add_argument('--cancel',action='store_true')
+    p=s.add_parser('merge-static');p.add_argument('--family',choices=models.STATIC_FAMILIES,required=True);p.add_argument('--tif-dir');p.add_argument('--strips',type=int,default=12)
     a=ap.parse_args(argv)
     return {'setup':setup,'init':init,'source-probe':source_probe,'pilot-static':pilot_static,
             'tasks':collect_task_costs,'qa-pilot':qa_pilot,'approve':approve,
             'submit-static':static_full,'pilot-event':event_pilot,
-            'validate-tif':local_tif_qa,'guard-budget':guard_budget}[a.cmd](a)
+            'validate-tif':local_tif_qa,'guard-budget':guard_budget,'merge-static':merge_static}[a.cmd](a)
 
 if __name__=='__main__':main()
