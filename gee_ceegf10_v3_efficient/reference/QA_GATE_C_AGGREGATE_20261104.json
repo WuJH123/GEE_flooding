@@ -1,0 +1,15 @@
+{
+ "basis":"User-provided Gate B/C acceptance report and GEE task status, 2026-11-04",
+ "completed_tasks":24,
+ "failed_superseded_tasks":1,
+ "n_blocks":4,
+ "merit":{"blocks":4,"cells":400,"bands":16,"eecu_hours":0.03032543261845906},
+ "worldcover":{"blocks":16,"cells":400,"bands":25,"eecu_hours":1.9442072465684677,"tile_shape":[5,5]},
+ "eecu_hours_total_success":1.9745326791869267,
+ "global_cost_note":"Simple per-cell extrapolation only: not a future cost guarantee",
+ "max_absolute_gshhg_raster_vs_vector_cell_fraction_difference":0.002739748745527071,
+ "max_class_fraction_conservation_error":8.361530490219593e-08,
+ "source_raster_files_not_attached_to_this_code_package":true,
+ "new_v2_online_validated":false,
+ "production_gate": "REQUIRES_V2_CODE_GRAPH_COMPARISON_TO_GATE_C_GEOTIFF"
+}
