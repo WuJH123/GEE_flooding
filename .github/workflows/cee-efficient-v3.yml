@@ -1,0 +1,35 @@
+name: CEE GF10 Efficient v3 offline regression
+on:
+  pull_request:
+    paths:
+      - 'gee_ceegf10_v3_efficient/**'
+      - '.github/workflows/cee-efficient-v3.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'gee_ceegf10_v3_efficient/**'
+      - '.github/workflows/cee-efficient-v3.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install -r gee_ceegf10_v3_efficient/requirements.txt
+      - name: Compile and run regression tests with warnings as failures
+        run: |
+          python -m compileall -q gee_ceegf10_v3_efficient/ceeprodgee
+          PYTHONPATH=gee_ceegf10_v3_efficient python -m pytest gee_ceegf10_v3_efficient/tests -q -W error
+      - name: Verify release source file SHA256 manifest
+        run: |
+          python - <<'PY'
+          import json,hashlib,pathlib
+          root=pathlib.Path('gee_ceegf10_v3_efficient')
+          sha=json.loads((root/'OFFLINE_TEST_AND_SHA256.json').read_text('utf8'))['hash_sha256']
+          for name,expected in sha.items():
+            assert hashlib.sha256((root/name).read_bytes()).hexdigest()==expected,name
+          print('PASS source hashes',len(sha))
+          PY
