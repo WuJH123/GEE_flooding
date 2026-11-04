@@ -2,7 +2,7 @@ import geopandas as gpd
 import pytest
 from shapely.geometry import box,shape
 from pyproj import Transformer
-from shapely.ops import transform
+from shapely import transform as geom_transform
 from ceeprodgee.coast import prepare_land_tile
 
 def test_l1_minus_l2_plus_l3_minus_l4_area_mass_balance(tmp_path):
@@ -12,7 +12,7 @@ def test_l1_minus_l2_plus_l3_minus_l4_area_mass_balance(tmp_path):
            box(2000,2000,3000,3000),box(2400,2400,2600,2600)]
     paths={}
     for i,p in enumerate(polys,1):
-        g=gpd.GeoDataFrame({'id':[i]},geometry=[transform(proj.transform,p)],crs='EPSG:4326')
+        g=gpd.GeoDataFrame({'id':[i]},geometry=[geom_transform(p,proj.transform,interleaved=False)],crs='EPSG:4326')
         path=tmp_path/f'GSHHS_f_L{i}.shp';g.to_file(path)
         paths[path.name]=path
     result,area=prepare_land_tile(paths,[0,0,10000,10000],expected_land_km2=91.96)

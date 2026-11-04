@@ -26,7 +26,8 @@ def prepare_land_tile(gshhg_paths, bbox_6933, expected_land_km2=None):
     """
     import geopandas as gpd
     from shapely.geometry import box,mapping
-    from shapely.ops import transform,unary_union
+    from shapely import transform as geom_transform
+    from shapely.ops import unary_union
     from pyproj import Transformer
     from shapely.validation import make_valid
     import numpy as np
@@ -62,6 +63,6 @@ def prepare_land_tile(gshhg_paths, bbox_6933, expected_land_km2=None):
         raise ValueError(f'GSHHG area mass balance fails: {area:.6f} vs {expected_land_km2:.6f} km2')
     if land.is_empty:return {'type':'GeometryCollection','geometries':[]},0.
     # Avoid automatically simplifying full-resolution source geometry.
-    geom_ll=transform(to_ll.transform,land)
+    geom_ll=geom_transform(land,to_ll.transform,interleaved=False)
     result=mapping(geom_ll)
     return result,float(area)

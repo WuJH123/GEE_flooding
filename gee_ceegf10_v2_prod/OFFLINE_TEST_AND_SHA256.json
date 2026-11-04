@@ -9,13 +9,13 @@
     "ceeprodgee/__init__.py": "3cc7822076a965be6a1f803ec5ce4caaebbc6aa412ed495525595a5cf077c2ae",
     "ceeprodgee/__main__.py": "7225097a5dc4f99152ba1dc5324ed73d5ee09508cbc5268fa3b1114905340036",
     "ceeprodgee/cli.py": "768d9de31d688df719a7eecc40a1fa2ae442c0ff5ade1bde3c4f139da29560a8",
-    "ceeprodgee/coast.py": "c0dee07120896b1e5f1087eeb779050e6c1557fe73ac252affc13fb0b57930a0",
+    "ceeprodgee/coast.py": "96a326c394ca32d4b735d967b945f58769c6e01ff9be692e73ad63f76006eb43",
     "ceeprodgee/contract.py": "bd8ee23c45513dfa85b647119df838d85a683c59703a9d2fc3536f8d0c664d27",
     "ceeprodgee/ee_model.py": "49975c9178cab8c7e5fe668a757c498dd68712e380b867dc7fb2253a177e4280",
     "ceeprodgee/grid.py": "876a330497a93c74fdb645a9214ae2e3e692ff87cbaaebf5e89b4da67a690bb9",
     "ceeprodgee/ledger.py": "f596d696c14f1f4d31455555e7ccdbaf2728ad9ed573bbf18703fa5cbdfa8f18",
     "ceeprodgee/qc.py": "847f80973cec2de15eafd7543ba59c6c8605b2e5e5a086171058d822ddf166dd",
-    "config/INDICATOR_CONTRACT_V2.csv": "e1547964d27575e694c57dc8eb60e657361f4156447b165abbd64dd649294c10",
+    "config/INDICATOR_CONTRACT_V2.csv": "37f47f3809d5f780733393e8613886181b96110046fb2e0ace2129a77c075cce",
     "reference/GATE_BC_M1_M2_4BLOCK_ACCEPTANCE_20261104_CN.md": "67a79f3dcf03937f6c55339aa94e67673d420c8ae565ddbead32c70e9b17e508",
     "reference/QA_GATE_C_AGGREGATE_20261104.json": "dca9c61956889d8fdeb926a13b1cd918a5139ef21b96f9d8a0dc8215eadddb42",
     "requirements.txt": "9b3cb03ed80fd3c59ec92aa49fb068d0488ea99fb9203622961796ba81d10020",
@@ -29,7 +29,8 @@
     "tests/test_contract_and_grid.py": "abc1a609547a8a90a46660aa8f8ffc0abf37a3fa8578e8e9eea2db3c1240a83d",
     "tests/test_event_scope.py": "be8c22f5f6961fc49064cf2ab2bf3e59cbd620b01c8be11ec0a7a29de32098ea",
     "tests/test_geotiff_qc.py": "025d0e56e05920bf27be587cf3be8ff756f01a46e05022275dfc47578031de56",
-    "tests/test_land_intersection.py": "b33a3549cfec5ea5356753e6dd0f5e8b011162fb935fe4cf2ba477a147e18cae",
+    "tests/test_land_intersection.py": "92da068404177d8a1481ea548fc2fd6a5dc2d3483ee8cca3bfcbdc4046a49778",
     "tests/test_unit_time_and_manifest.py": "9f64abaa4746b0fcda1f53b16534f95908857c37996e104ab5806161fb238134"
-  }
+  },
+  "deprecation_warnings": 0
 }
