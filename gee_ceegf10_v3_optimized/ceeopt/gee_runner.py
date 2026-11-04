@@ -73,13 +73,25 @@ def source_probe():
     atomic_json(BASE/'reports'/'gee_source_probe.json',data)
     return data
 
+def merit_tile_origin(x,y,block=20):
+    """Pre-registered 20-cell task lattice: offset x by 10 GF10 cells."""
+    if block not in (10,20):raise ValueError('MERIT block must be 10 or 20')
+    xo=10 if block==20 else 0
+    return ((int(x)-xo)//block*block+xo,int(y)//block*block)
+
+
 def merit_plan(block=20):
     import pandas as pd
     from ceeprodgee.grid import make_plan
     if block not in (10,20):raise ValueError('MERIT block size 10 or 20; 20 needs online Gate-C equivalence approval')
     g=load_gf10(_root()['gf10'],True)
     x=g[['grid_id','grid_x','grid_y','land_area_km2']].copy()
-    x['bx']=(x.grid_x//block)*block;x['by']=(x.grid_y//block)*block
+    # Anchor 20x20 MERIT tiles at x = ...,-10,10,30,... so the entire
+    # already-validated Wuhan Gate C 1097..1106 block lies inside ONE
+    # aligned 20x20 production tile (1090,360), avoiding pilot duplication.
+    xoffset=10 if block==20 else 0
+    x['bx']=((x.grid_x-xoffset)//block)*block+xoffset
+    x['by']=(x.grid_y//block)*block
     p=(x.groupby(['bx','by'],sort=True).agg(n_land_cells=('grid_id','size'),
                   km2_land=('land_area_km2','sum')).reset_index())
     p['tile_size']=block;p['key']=[f'merit_{xx}_{yy}_{block}' for xx,yy in zip(p.bx,p.by)]

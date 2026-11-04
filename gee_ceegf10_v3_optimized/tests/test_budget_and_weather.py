@@ -49,3 +49,10 @@ def test_weather_raster_10km_12band_audit(tmp_path):
         pass
     with pytest.raises(ValueError,match='mismatch'):
         validate_weather_raster(p,101,200,2)
+
+
+def test_merit_20_block_pilot_belongs_to_same_global_plan():
+    from ceeopt.gee_runner import merit_tile_origin
+    assert merit_tile_origin(1097,367,20)==(1090,360)
+    assert merit_tile_origin(1106,376,20)==(1090,360)
+    assert merit_tile_origin(-1,-1,20)==(-10,-20)

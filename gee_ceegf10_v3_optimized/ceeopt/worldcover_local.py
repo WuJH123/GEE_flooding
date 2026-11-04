@@ -27,6 +27,8 @@ def source_index(source_dir,out,strict_full=False):
     if not tif:raise FileNotFoundError('No ESA WorldCover Map COG files in '+str(root))
     items=[];total=0
     for i,p in enumerate(tif):
+        if '2021' not in p.name or '_map' not in p.stem.lower():
+            raise ValueError(f'Expected official ESA WorldCover 2021 Map COG, not another source: {p.name}')
         with rasterio.open(p) as src:
             if src.count!=1:raise ValueError(f'{p}: WorldCover Map must contain one class band, not InputQuality')
             if src.crs is None or not src.crs.is_geographic:
@@ -295,6 +297,25 @@ def compare_gate_c(out,reference_dir,report_file,minimum_cells=12):
                         current_diffs.extend(np.abs(ref[good]-cur[good]).tolist())
                         common+=1
             if common<minimum_cells:raise ValueError(f'Insufficient shared cells for Gate C {k}: {common}')
+            # Rare class conservation: a missing wetland/mangrove/snow class
+            # cannot hide behind a permissive aggregate 1-ppt threshold.
+            for code in (70,90,95,100):
+                for band in (WC_FIELDS.index(f'wc_{code}_fraction_fullcell'),
+                             WC_FIELDS.index(f'wc_{code}_fraction_land')):
+                    refvals=arr[band]
+                    # compare only shared native10m/Earth Engine data for this test
+                    # below: any reference fraction >=0.1% needs <= max(0.1ppt,25% relative) difference.
+                    for rr in range(ds.height):
+                        for cc in range(ds.width):
+                            xx=int(round((ds.transform*(cc+0.5,rr+0.5))[0]/10000-0.5))
+                            yy=int(round((ds.transform*(cc+0.5,rr+0.5))[1]/10000-0.5))
+                            ky=f'{xx}_{yy}'
+                            if ky not in data.index or not np.isfinite(refvals[rr,cc]):continue
+                            got=float(data.loc[ky,WC_FIELDS[band]])
+                            refv=float(refvals[rr,cc])
+                            if not np.isfinite(got):continue
+                            if refv>=0.001 and abs(got-refv)>max(0.001,0.25*refv):
+                                raise ValueError(f'Rare WorldCover class {code} not conserved near {k}/{ky}: {got} vs {refv}')
             all_diffs.extend(current_diffs)
             per_region.append({'name':k,'n_common_cells':common,'max_abs_fraction_diff':max(current_diffs),
                               'p95_abs_fraction_diff':float(np.percentile(current_diffs,95)),

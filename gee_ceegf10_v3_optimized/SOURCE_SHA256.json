@@ -5,9 +5,9 @@
     "ceeopt/__main__.py": "ffb896cb9d960a37ab332d6448e1cf1914f167caa1d1a830ec7bd57d0a97f48a",
     "ceeopt/base.py": "6df5bb45fee41d472d873c551b950e1c6929423638fe36f44383bf0419bb2fff",
     "ceeopt/cost.py": "f5dedcebed9fe7607a25b7bf73ff71b1fcd8526f29a0a2d54e408b48f7fed5df",
-    "ceeopt/gee_runner.py": "f8419f5c7db0f3c77d728f7ba41c74d308878271d296761f7011d448d9adb3ad",
+    "ceeopt/gee_runner.py": "04d32b0eda9bfe83f3ddaaa9f94b9ba0bc13a1477399b67bda35b7bc53553812",
     "ceeopt/weather.py": "b43dd6ceddd15f80cbbc447b9baafdb7aae7cb30ac30aa32d633b3438f0d8717",
-    "ceeopt/worldcover_local.py": "2e5bce96b85780d74854edaa5e5346de59c2e9e73efc823c15cfb6be6543ff60",
+    "ceeopt/worldcover_local.py": "ff0b9b088a4b8bd6912fe0cac83df7a6723ca70b3dbe1d4a8496a744bed2b5c6",
     "ceeprodgee/__init__.py": "3cc7822076a965be6a1f803ec5ce4caaebbc6aa412ed495525595a5cf077c2ae",
     "ceeprodgee/__main__.py": "7225097a5dc4f99152ba1dc5324ed73d5ee09508cbc5268fa3b1114905340036",
     "ceeprodgee/cli.py": "768d9de31d688df719a7eecc40a1fa2ae442c0ff5ade1bde3c4f139da29560a8",
@@ -33,7 +33,7 @@
     "scripts/09_gee_weather_plan.ps1": "941629fb18633b4eb61ecdbb6d3824454f4b35cb6a57c92b1cda4e1c8702a99c",
     "scripts/10_gee_weather_next.ps1": "c3f7dcf07e00dbf247dd58e7bb333a6012a0268569e318ce0279bff25d32fd55",
     "scripts/11_gee_status.ps1": "5c67c07ff8db566adecf7e5e3c969eb10da13117c756be7ec418083f0d557dbb",
-    "tests/test_budget_and_weather.py": "130bf5ca26a90069445598261a3556abb7f4fb0cb0850b94158ca949ac025f3c",
+    "tests/test_budget_and_weather.py": "660a5c0803ed613d723884f0548181e43fe44179a8e04d5639d66ae99a328028",
     "tests/test_source_index_and_grid.py": "ef82a4d3236e504fc2080fbfe46e1daf571742a3670ae67e8127ee91566af99f",
     "tests/test_wc_10km_science.py": "14ae69f275cdef703652d5d7f651a894eaa81972054ea6854678c21e8286c15b",
     "tests/test_worldcover_real_warp_integration.py": "c2307f0e6666570725a66b5f2c8a7f66b2c145f806967e8f842c966251b84bda",
@@ -47,5 +47,5 @@
   "package": "CEE_GF10_EFFICIENT_V3_20261104",
   "revision": "v3.0",
   "source": "GEE original v2; independent official ESA WorldCover native 10m 117GB COG Map; immutable GF10 EPSG6933 10km",
-  "tests_local": "24 passed, 2 skipped missing pyarrow; CI must run all"
+  "tests_local": "25 passed, 2 skipped missing pyarrow; CI must run all 27"
 }
