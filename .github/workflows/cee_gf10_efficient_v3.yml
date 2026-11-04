@@ -1,0 +1,41 @@
+name: CEE GF10 efficient V3 reproducibility tests
+on:
+  push:
+    paths:
+      - 'gee_ceegf10_v3_optimized/**'
+      - '.github/workflows/cee_gf10_efficient_v3.yml'
+  pull_request:
+    paths:
+      - 'gee_ceegf10_v3_optimized/**'
+      - '.github/workflows/cee_gf10_efficient_v3.yml'
+  workflow_dispatch:
+jobs:
+  offline-geo-science:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: gee_ceegf10_v3_optimized/requirements.txt
+      - name: Install exact geospatial stack
+        run: python -m pip install -r gee_ceegf10_v3_optimized/requirements.txt
+      - name: Check source release manifest
+        run: |
+          python - <<'PY'
+          import json,hashlib,pathlib
+          root=pathlib.Path('gee_ceegf10_v3_optimized')
+          manifest=json.loads((root/'SOURCE_SHA256.json').read_text('utf8'))
+          for rel,h in manifest['files'].items():
+              got=hashlib.sha256((root/rel).read_bytes()).hexdigest()
+              assert got==h,(rel,got,h)
+          print('SOURCE_SHA256_OK',len(manifest['files']))
+          PY
+      - name: Scientific unit, geospatial and native COG integration tests
+        env:
+          PYTHONPATH: gee_ceegf10_v3_optimized
+        run: |
+          python -m compileall -q gee_ceegf10_v3_optimized/ceeopt gee_ceegf10_v3_optimized/ceeprodgee
+          python -m pytest -q gee_ceegf10_v3_optimized/tests gee_ceegf10_v3_optimized/tests_legacy -W error::DeprecationWarning
+          python -m ceeopt cost
