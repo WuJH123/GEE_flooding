@@ -1,6 +1,6 @@
 {
-  "version": "20261105_v3",
-  "tests": "22 tests with warnings-as-errors",
+  "version": "20261105_v3_hotfix_runid",
+  "tests": "23 pass with warnings-as-errors",
   "hash_sha256": {
     "README_CN.md": "5c42ca2658fdf3d7a77b8ab2aa0ceba4a065fb657d8141e33dade22996aab288",
     "README_EFFICIENT_V3_CN.md": "5c42ca2658fdf3d7a77b8ab2aa0ceba4a065fb657d8141e33dade22996aab288",
@@ -26,10 +26,10 @@
     "requirements.txt": "9b3cb03ed80fd3c59ec92aa49fb068d0488ea99fb9203622961796ba81d10020",
     "scripts/00_preflight.ps1": "a6cb22746c38c5ce0879b1a4f9fdcfe3f34f0187afecbb12cb8efd6f554dd64d",
     "scripts/01_plan_cost.ps1": "ec6d83a1e4bcd387fafb13c12d8ebb401e20efccbee50ebeb1cfbf44da632bfa",
-    "scripts/02_submit_pilot_merit.ps1": "232679460675be4f198d114a79e85bc6e0fc91acb82789eae8d33ce4ee07281d",
-    "scripts/03_submit_pilot_worldcover.ps1": "d569771a60b3f3d28df155a6efa46b6af31cf7dee0f8faaafc9050293bc2e2f9",
+    "scripts/02_submit_pilot_merit.ps1": "409fc5d1cb0cd5c5c61e0b882ee9d5c1c56369849888379d3585f0f7e655f52b",
+    "scripts/03_submit_pilot_worldcover.ps1": "61dcb580b6da05384ec3187251ef0c927bc42917c9f1543ebdb471534a65f2a9",
     "scripts/04_show_task_status.ps1": "749300a0af5da77104e2d1994f94ef804aef0335a0448298d8b8edc22a305847",
-    "scripts/05_event_method_only.ps1": "4aec9f4b73ec1181dd79e14e64f787e0a7e43ac752bc76788d47b92ab235353c",
+    "scripts/05_event_method_only.ps1": "6d0167723d4134d3d3444285d3720cc75bac93fa4f942d6b200f34cc7da4409b",
     "scripts/09_verify_offline_v3.ps1": "ae106656b67537da12b07ccc76129422ee85c10f209ecb05ea9dacfc0ae3a412",
     "scripts/10_worldcover_aws_download.ps1": "3393377ddd670bc1e87ccd19b93bc4b69df8d45f34b3b99b212c126c645cd120",
     "scripts/11_worldcover_local_pilot.ps1": "211fb8239c23121faa0df8cea07df8c74cbede77e142bd3b6a9c5cb90cf8b359",
@@ -45,6 +45,7 @@
     "tests/test_local_worldcover.py": "370a608bc9a0fc44bcfb3867371b8a719210de1fc9b4dc1979f716653878d6d0",
     "tests/test_source_io_manifest.py": "0f6662ab4a001446f4f6f413e5987a17ddfabe863fb0cc0677b787ffae29ec13",
     "tests/test_unit_time_and_manifest.py": "9f64abaa4746b0fcda1f53b16534f95908857c37996e104ab5806161fb238134",
+    "tests/test_windows_runid_v3.py": "4c9675cfe66d8cf518d635e83455d62637462e2ca271a96199d6a4745d305bdc",
     "tests/test_worldcover_native_warp.py": "745711568e984345e509fcd1f1d887db3437651b41ec4c099a92967b64c498d0"
   }
 }
