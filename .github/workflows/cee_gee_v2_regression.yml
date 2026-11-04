@@ -1,0 +1,39 @@
+name: CEE GF10 GEE v2 offline regression
+on:
+  push:
+    paths:
+      - 'gee_ceegf10_v2_prod/**'
+      - '.github/workflows/cee_gee_v2_regression.yml'
+  pull_request:
+    paths:
+      - 'gee_ceegf10_v2_prod/**'
+      - '.github/workflows/cee_gee_v2_regression.yml'
+permissions:
+  contents: read
+jobs:
+  python-offline-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: gee_ceegf10_v2_prod/requirements.txt
+      - run: python -m pip install -r gee_ceegf10_v2_prod/requirements.txt
+      - name: Source compile and synthetic spatial unit tests
+        env:
+          PYTHONPATH: gee_ceegf10_v2_prod
+        run: |
+          python -m compileall -q gee_ceegf10_v2_prod/ceeprodgee
+          pytest gee_ceegf10_v2_prod/tests -q
+      - name: Verify offline source manifest checksums
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib
+          root=pathlib.Path('gee_ceegf10_v2_prod')
+          doc=json.loads((root/'OFFLINE_TEST_AND_SHA256.json').read_text(encoding='utf8'))
+          for path,h in doc['hash_sha256'].items():
+              assert hashlib.sha256((root/path).read_bytes()).hexdigest()==h,path
+          print('PASS',len(doc['hash_sha256']),'file hashes')
+          PY

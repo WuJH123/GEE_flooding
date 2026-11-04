@@ -1,0 +1,71 @@
+﻿code,source,epoch,unit,aggregation,denominator,figure_role,priority,semantic_caveat
+merit_hand_mean_m,MERIT/Hydro/v1_0_1,static,m,mean,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_elv_mean_m,MERIT/Hydro/v1_0_1,static,m,mean,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_upa_mean_km2,MERIT/Hydro/v1_0_1,static,km2,mean,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_permanent_water_fraction,MERIT/Hydro/v1_0_1,static,fraction,mean,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_valid_fraction,MERIT/Hydro/v1_0_1,static,fraction,mean,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_hand_le2_fraction_valid,MERIT/Hydro/v1_0_1,static,fraction,mean,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_hand_le5_fraction_valid,MERIT/Hydro/v1_0_1,static,fraction,mean,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_hand_le10_fraction_valid,MERIT/Hydro/v1_0_1,static,fraction,mean,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_slope_mean_deg,MERIT/Hydro/v1_0_1,static,deg,mean,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_slope_le2_fraction_valid,MERIT/Hydro/v1_0_1,static,fraction,mean,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_upa_max_km2,MERIT/Hydro/v1_0_1,static,km2,max,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_upa_max_log1p,MERIT/Hydro/v1_0_1,static,dimensionless,log1p,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_hand_p10_m,MERIT/Hydro/v1_0_1,static,m,source_pixel_percentile,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_hand_p50_m,MERIT/Hydro/v1_0_1,static,m,source_pixel_percentile,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_hand_p90_m,MERIT/Hydro/v1_0_1,static,m,source_pixel_percentile,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+merit_upa_p90_km2,MERIT/Hydro/v1_0_1,static,km2,source_pixel_percentile,valid_source_pixels_not_GSHHG_land,M1,P0,MERIT elv hydrologically adjusted; upa drainage area not sewer capacity; pXX direct native source distribution
+wc_10_fraction_fullcell,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,whole_10km_cell,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_20_fraction_fullcell,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,whole_10km_cell,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_30_fraction_fullcell,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,whole_10km_cell,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_40_fraction_fullcell,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,whole_10km_cell,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_50_fraction_fullcell,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,whole_10km_cell,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_60_fraction_fullcell,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,whole_10km_cell,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_70_fraction_fullcell,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,whole_10km_cell,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_80_fraction_fullcell,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,whole_10km_cell,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_90_fraction_fullcell,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,whole_10km_cell,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_95_fraction_fullcell,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,whole_10km_cell,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_100_fraction_fullcell,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,whole_10km_cell,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_valid_fraction_fullcell,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,whole_10km_cell,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_10_fraction_land,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,GSHHG_land_area,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_20_fraction_land,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,GSHHG_land_area,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_30_fraction_land,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,GSHHG_land_area,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_40_fraction_land,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,GSHHG_land_area,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_50_fraction_land,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,GSHHG_land_area,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_60_fraction_land,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,GSHHG_land_area,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_70_fraction_land,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,GSHHG_land_area,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_80_fraction_land,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,GSHHG_land_area,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_90_fraction_land,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,GSHHG_land_area,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_95_fraction_land,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,GSHHG_land_area,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_100_fraction_land,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,GSHHG_land_area,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_valid_fraction_land,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,area_weighted_class_fraction,GSHHG_land_area,M2,P0,2021 WorldCover classification uncertainty and coastline mask uncertainty
+wc_gshhg_land_fraction_raster,ESA/WorldCover/v200 + GSHHG Full 2.3.7,2021,fraction,intersect_L1-L2+L3-L4,whole_10km_cell,M2,P0,Rasterized coastline may differ from exact vector km2
+imerg_day_mm,NASA/GPM_L3/IMERG_V07 status=permanent,GF10 × date_utc,mm,48 × half-hour depth sum,UTC,M0,P0,Event UTC day includes within-day precipitation
+imerg_peak_30min_mm_h,NASA/GPM_L3/IMERG_V07 status=permanent,GF10 × date_utc,mm/h,max half-hour intensity,UTC,M0,P0,Intensity peak; no finer temporal resolution
+imerg_rolling3h_max_mm,NASA/GPM_L3/IMERG_V07 status=permanent,GF10 × date_utc,mm,max of 48 six-halfhour rolling windows,UTC,M0,P0,First windows include D-1 intervals; require complete count 6
+imerg_pre7d_mm,NASA/GPM_L3/IMERG_V07 status=permanent,GF10 × date_utc,mm,336 half-hours strictly preceding day D,UTC,M0,P0,No event-day leakage
+imerg_pre14d_mm,NASA/GPM_L3/IMERG_V07 status=permanent,GF10 × date_utc,mm,672 half-hours strictly preceding day D,UTC,M0,P0,No event-day leakage
+imerg_pre30d_mm,NASA/GPM_L3/IMERG_V07 status=permanent,GF10 × date_utc,mm,1440 half-hours strictly preceding day D,UTC,M0,P0,No event-day leakage
+imerg_n_obs_day,NASA/GPM_L3/IMERG_V07 status=permanent,GF10 × date_utc,count,observed 30min slots,UTC,M0,P0,Should equal 48 for completed final day
+imerg_n_obs_pre7d,NASA/GPM_L3/IMERG_V07 status=permanent,GF10 × date_utc,count,observed 30min slots,UTC,M0,P0,Should equal 336 for completed final sequence
+imerg_n_obs_pre14d,NASA/GPM_L3/IMERG_V07 status=permanent,GF10 × date_utc,count,observed 30min slots,UTC,M0,P0,Should equal 672 for completed final sequence
+imerg_n_obs_pre30d,NASA/GPM_L3/IMERG_V07 status=permanent,GF10 × date_utc,count,observed 30min slots,UTC,M0,P0,Should equal 1440 for completed final sequence
+era5_soil_l1_prevday_m3m3,ECMWF/ERA5_LAND/DAILY_AGGR,GF10 × date_utc,m3/m3,previous_daily_value,UTC,M0,P0,"Daily average volume fraction, previous full UTC day"
+era5_soil_l2_prevday_m3m3,ECMWF/ERA5_LAND/DAILY_AGGR,GF10 × date_utc,m3/m3,previous_daily_value,UTC,M0,P0,"Daily average volume fraction, previous full UTC day"
+era5_t2m_prevday_C,ECMWF/ERA5_LAND/DAILY_AGGR,GF10 × date_utc,C,previous_daily_value,UTC,M0,P0,Daily mean Kelvin to C; previous day
+era5_rain_prevday_mm,ECMWF/ERA5_LAND/DAILY_AGGR,GF10 × date_utc,mm,previous_daily_value,UTC,M0,P0,"ERA5 daily sum m→mm, negatives flagged rather than zero-filled"
+era5_runoff_prevday_mm,ECMWF/ERA5_LAND/DAILY_AGGR,GF10 × date_utc,mm,previous_daily_value,UTC,M0,P0,ERA5 runoff sum m→mm; avoid physical claims without QC
+era5_u_prevday_ms,ECMWF/ERA5_LAND/DAILY_AGGR,GF10 × date_utc,m/s,previous_daily_value,UTC,M0,P0,Previous-day mean 10m eastward wind
+era5_v_prevday_ms,ECMWF/ERA5_LAND/DAILY_AGGR,GF10 × date_utc,m/s,previous_daily_value,UTC,M0,P0,Previous-day mean 10m northward wind
+era5_wind_prevday_ms,ECMWF/ERA5_LAND/DAILY_AGGR,GF10 × date_utc,m/s,previous_daily_value,UTC,M0,P0,"Speed from daily mean vector, not daily mean instantaneous speed"
+built_area_population_SMOD_NRES,LOCAL_GHSL_2000_2020,static/original source era,source-specific,local only,source-specific,M3/M4,REUSE_LOCAL,Already downloaded or processed; audit coverage before claiming full
+impervious_1985_to_2020,LOCAL_GISD30,static/original source era,source-specific,local only,source-specific,M2/M4,REUSE_LOCAL,"History, not 2021 contemporaneous data"
+road_length_density,LOCAL_GRIP4_Vector,static/original source era,source-specific,local only,source-specific,M3,REUSE_LOCAL,Use actual vector length; do not duplicate coarser density
+river_length_density,LOCAL_RiverATLAS,static/original source era,source-specific,local only,source-specific,M1,REUSE_LOCAL,River pathway covariate; not sewer capacity
+elevation_slope_roughness_TPI_TRI,LOCAL_GMTED2010,static/original source era,source-specific,local only,source-specific,M1,REUSE_LOCAL,Do not confuse source mean/max statistics
+19_BIO_and_monthly_climatologies,LOCAL_WorldClim_1970_2000,static/original source era,source-specific,local only,source-specific,M0 background,REUSE_LOCAL,"Climatology, not event rainfall"
+annual_extreme_climate_features,LOCAL_ERA5EX,static/original source era,source-specific,local only,source-specific,M0 background,REUSE_LOCAL,Yearly extremes distinct from event-day ERA5 Land
+city_basin_attributes,LOCAL_UCDB_BasinAtlas,static/original source era,source-specific,local only,source-specific,Figure1/M3,REUSE_LOCAL,Raw attribute join must be source-audited
+historical_water_occurrence,JRC/GSW1_4/GlobalSurfaceWater,2020/1984-2021,source-specific,"GEE optional, not submitted",source-specific,M1 sensitivity,P1_OPTIONAL,Only after actual local-coverage audit and pilot; do not treat as mandatory completed
+night_lights_2020,NOAA/VIIRS/DNB/MONTHLY_V1/VCMSLCFG,2020/1984-2021,source-specific,"GEE optional, not submitted",source-specific,reporting-selection sensitivity,P1_OPTIONAL,Only after actual local-coverage audit and pilot; do not treat as mandatory completed
+NDVI_2020,MODIS/061/MOD13Q1,2020/1984-2021,source-specific,"GEE optional, not submitted",source-specific,M2 sensitivity,P1_OPTIONAL,Only after actual local-coverage audit and pilot; do not treat as mandatory completed
