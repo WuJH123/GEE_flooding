@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r gee_ceegf10_v4_edge_recovery/requirements.txt
-      - name: Check v4 package imports and 18 safety regression tests
+      - name: Check v4 package imports and 20 safety regression tests
         run: |
           python -m compileall -q gee_ceegf10_v4_edge_recovery/cee_recover
           PYTHONPATH=gee_ceegf10_v4_edge_recovery python -m pytest -q -W error gee_ceegf10_v4_edge_recovery/tests
