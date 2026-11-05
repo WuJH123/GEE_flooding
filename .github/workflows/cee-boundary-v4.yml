@@ -1,0 +1,33 @@
+name: CEE GF10 GEE v4 boundary regression
+on:
+  pull_request:
+    paths:
+      - 'gee_ceegf10_v4_boundary_recovery/**'
+      - '.github/workflows/cee-boundary-v4.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'gee_ceegf10_v4_boundary_recovery/**'
+      - '.github/workflows/cee-boundary-v4.yml'
+jobs:
+  offline-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Dependencies
+        run: python -m pip install -r gee_ceegf10_v4_boundary_recovery/requirements.txt
+      - name: Unit tests and SHA256
+        run: |
+          python -m compileall -q gee_ceegf10_v4_boundary_recovery/cee_boundary_v4
+          PYTHONPATH=gee_ceegf10_v4_boundary_recovery python -m pytest gee_ceegf10_v4_boundary_recovery/tests -q -W error
+          python - <<'PY'
+          import hashlib,json,pathlib
+          r=pathlib.Path('gee_ceegf10_v4_boundary_recovery')
+          manifest=json.loads((r/'SOURCE_SHA256.json').read_text('utf8'))
+          for k,h in manifest['files'].items():
+              assert hashlib.sha256((r/k).read_bytes()).hexdigest()==h,k
+          print('VERIFIED',len(manifest['files']))
+          PY

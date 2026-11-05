@@ -1,0 +1,25 @@
+{
+  "release": "2026-11-05_v4_boundary",
+  "offline_tests": "7 passed",
+  "files": {
+    "README_CN.md": "493dc4366b15d21ac1e0d3e5cf164b3a7f312f7dca5f69142843e1c72a8b5a39",
+    "cee_boundary_v4/__init__.py": "dda7ad6d0d8f0234043b0ac6d3ea4bbc51df8751b3258762e4bf347130605aaa",
+    "cee_boundary_v4/__main__.py": "cf7390a2508a0fcad4777a4a629fc5212ab655cb45845975995f835676a834e3",
+    "cee_boundary_v4/audit.py": "17a6b2070e4699fe4a9e83eaae349f9893122755cae505406450cced727936ab",
+    "cee_boundary_v4/cli.py": "4eae97e99b41712d54da9b2197a5dc4676d3b795f82612bd7d5de43ed57c8d06",
+    "cee_boundary_v4/cohort.py": "d58a90e4b0adf0481b18155106a68a1d27ace274223fbe3ba229bfbd3ea3f4e2",
+    "cee_boundary_v4/core.py": "ca198a11dd6201936ed304839870059778dd0a5b04ff94579cce215f630b9ec6",
+    "cee_boundary_v4/merge.py": "0967f6e29b0263e23bb44b23b6e7262ca9245e870ef2da42f0ee9e1aeaf6c2c2",
+    "requirements.txt": "1f89802097f5d140c2e558e5c91f83e64e529b8237ea8efe1a30dc71a1cb496e",
+    "scripts/00_environment.ps1": "99bc306f91470297c3c98a82f6ce4613a9938bffac1e664a9af2271055365091",
+    "scripts/01_preflight_and_plan.ps1": "126b2cb275f2f9e66a4e08321f438ab6f64619f76f66c18f3649e9799cbb8ecd",
+    "scripts/02_wuhan_table_pilot.ps1": "50058165d654e6cc31eb9fcedd186fe50c51d876a3b6c6ce1a8c08e16ecb4497",
+    "scripts/03_quarantine_v3_edge.ps1": "dd0573d4988c8b7a86c240ef694458bc90c08da88dfed105cc05e1ebc6176096",
+    "scripts/04_edge_submit.ps1": "ddcf477987a6d64c4c8de6665d5d8fcec1c2d39a1cd22749418f5c5252ae67c8",
+    "scripts/05_next_task.ps1": "ecc04ba71e8e02fae84f0dece9a0da5f9877def23c3e43b4f85958d436619142",
+    "scripts/06_status.ps1": "67f61e54545ba5e43cf58c979d53a37f7f35be10dbdb39160d884be9bb7287ed",
+    "scripts/07_merge_partial.ps1": "8052d1f54ecca3481244876f0fc9bbcced895edb224b5bb9a665ce4be336f2d0",
+    "scripts/08_audit_cohort.ps1": "31763a45794297963b1300beb1dc35324784090406a55812a9fb4b6ffaf5dae4",
+    "tests/test_boundary.py": "22e4a8541eb37c889887929116b9eb97767ded6044ecc2c81a851a5c842c278a"
+  }
+}
