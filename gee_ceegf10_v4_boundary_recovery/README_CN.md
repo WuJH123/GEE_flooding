@@ -27,7 +27,17 @@ Set-ExecutionPolicy -Scope Process Bypass -Force
 
 无须修改v3，当前`E:\GEE_flooding\CEE_GF10_EFFICIENT_V3_20261105`已部署；v4自动探测v3和其虚拟环境，读取原本确认过的Cloud项目和GF10 SHA256。此步纯本地，不耗费EECU。
 
-### 先进行武汉 point-table 独立验证
+### Step 2：先隔离旧版失败块（不会删除数据）
+
+由于旧v3中`merit_-1740_-240_10`仍为`SUCCEEDED`但本地QC拒绝，v4安全闸门会在任何新GEE提交前检查它。**因此必须先执行：**
+
+```powershell
+.\scripts\03_quarantine_v3_edge.ps1
+```
+
+这只是把已知3474×10失败记录记入v4隔离报告，源账本和原始GeoTIFF均原样保留。之后才能执行武汉验证。
+
+### Step 3：武汉 point-table 独立验证
 
 ```powershell
 .\scripts\02_wuhan_table_pilot.ps1             # DRY_RUN
@@ -51,10 +61,9 @@ $env:PYTHONPATH="$V4;$V3"
 
 如果本机缺少 `E:\GEE_flooding\gee_ceegf10_v1\reports\gate_c_drive_tifs\gate_c_merit_v2_wuhan_10x10.tif`，必须将以前已验收的真正参考文件复制过来。程序不会以自己的结果作独立参照。
 
-### 隔离失败块，并重新导出边缘块为表格
+### Step 4：重新导出边缘块为表格
 
 ```powershell
-.\scripts\03_quarantine_v3_edge.ps1
 .\scripts\04_edge_submit.ps1                 # DRY_RUN，首个正式块应显示POINT_TABLE
 .\scripts\04_edge_submit.ps1 -Execute        # 仅提交1项西侧边缘块表格
 .\scripts\06_status.ps1
