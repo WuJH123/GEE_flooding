@@ -163,3 +163,11 @@ def test_merit_edge_submission_uses_table_not_image_export(tmp_path,monkeypatch)
     assert samples[0][1]['geometries'] is False
     assert len(samples[0][1]['collection'])==3
     assert 'started' in log
+
+
+def test_static_merge_skips_method_only_ledger_row_without_family():
+    registry=[{'key':'event_method_20230601','kind':'EVENT_METHOD_ONLY','local_qc_pass':True},
+              {'key':'merit_1097_367_10','family':'merit','local_qc_pass':True},
+              {'key':'merit_-1740_-240_10','family':'merit','local_qc_pass':False}]
+    out=edge_safe.accepted_static_records(registry,'merit')
+    assert [r['key'] for r in out]==['merit_1097_367_10']

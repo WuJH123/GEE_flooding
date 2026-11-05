@@ -139,3 +139,8 @@ def compact_merge_rows(rows):
         if len(ids)!=len(block) or ids & all_ids:raise ValueError('Duplicate GF10 IDs in combined sources')
         all_ids|=ids
     return all_ids
+
+
+def accepted_static_records(records,family):
+    """Event-method rows have no `family`; never let them crash MERIT merge."""
+    return [r for r in records if r.get('family')==family and r.get('local_qc_pass') is True]

@@ -19,7 +19,7 @@ jobs:
       - name: Install offline-test dependencies
         run: |
           python -m pip install -r gee_ceegf10_v3_1_edge_safe/requirements.txt
-      - name: Verify checksum and 33 regression tests (no EE login or tasks)
+      - name: Verify checksum and 34 regression tests (no EE login or tasks)
         working-directory: gee_ceegf10_v3_1_edge_safe
         run: |
           python verify_release.py

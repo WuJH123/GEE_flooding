@@ -373,7 +373,7 @@ def merge(args):
     import numpy as np
     import rasterio
     c=_config();g=grid.read_grid(c['grid_path'])
-    registry=[r for r in ledger.read_json(LEDGER,[]) if r['family']==args.family and r.get('local_qc_pass')]
+    registry=edge_safe.accepted_static_records(ledger.read_json(LEDGER,[]),args.family)
     if not registry:raise ValueError('No QA-passed tile outputs')
     columns=list(contract.frozen_bands(args.family));seen=set();blocks=[]
     for r in registry:
