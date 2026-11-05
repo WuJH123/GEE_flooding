@@ -1,0 +1,8 @@
+workstream,source,source_resolution,version,variables,processing,analysis_unit,time_semantics,validation
+M1,MERIT Hydro,3 arcseconds,v1.0.1,"HAND mean p10 p50 p90 low2/5/10 fractions;hydrologic elevation mean;UPA mean max p90;water fraction;slope mean low2",GEE bounded 10x10 tile,GF10 10km,static,"16 band schema;source pixel checks;GateC independent result;NoData land audit"
+M2,ESA WorldCover,10m,2021 v200,"11 categories whole-cell and land fractions;tree/shrub/grass/wetland/built/water composite",AWS COG local native categorical 10m warp+GSHHG mask,GF10 10km,2021 fixed,"GateC four-region independent comparison;source coverage;land fraction;class sum;NoData"
+M0,IMERG V07,0.1 degree,Final/permanent,"UTC day sum,UTC within-day max rolling 3h,30min peak,pre7/14/30 day sums",GEE event-date scoped,GF10 x UTC-day,event daily 2021-2025 through available permanent release,"48/336/672/1440 half-hours complete;no cross-midnight 3h;missing not zero"
+M0,ERA5-Land Daily,0.1 degree,DAILY_AGGR,"previous complete UTC day soil water 1-2,temperature 2m,rain,runoff,wind",GEE event-date scoped,GF10 x UTC-day,previous complete UTC-day,"K->C; m->mm;sum vs mean;flag negative accumulation and known issues"
+P1,VIIRS,500m,2020 baseline,nighttime radiance,NOT SUBMITTED,GF10 10km,2020 historical,"not contracted until research justification"
+P1,MODIS vegetation,250-500m,2020 baseline,NDVI,NOT SUBMITTED,GF10 10km,2020 historical,"not contracted until research justification"
+P1,JRC Global Surface Water,30m,long-term,water occurrence,NOT SUBMITTED,GF10 10km,historical,"not contracted until research justification"

@@ -1,0 +1,27 @@
+name: CEE GF10 GEE edge-safe v3.1 offline QC
+on:
+  push:
+    paths:
+      - 'gee_ceegf10_v3_1_edge_safe/**'
+      - '.github/workflows/cee_gee_edge_safe_v31.yml'
+  pull_request:
+    paths:
+      - 'gee_ceegf10_v3_1_edge_safe/**'
+      - '.github/workflows/cee_gee_edge_safe_v31.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install offline-test dependencies
+        run: |
+          python -m pip install -r gee_ceegf10_v3_1_edge_safe/requirements.txt
+      - name: Verify checksum and 33 regression tests (no EE login or tasks)
+        working-directory: gee_ceegf10_v3_1_edge_safe
+        run: |
+          python verify_release.py
+          python -m compileall -q ceeprodgee
+          python -m pytest -q -W error tests
