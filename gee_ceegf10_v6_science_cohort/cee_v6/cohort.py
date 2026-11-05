@@ -104,7 +104,7 @@ def generate_calendar_candidates(cases,n_candidates=8,exclusion_days=7):
         offsets=sorted(OFFSETS,key=lambda x:hashlib.sha256((str(r.case_id)+'|'+str(x)).encode()).hexdigest())
         found=0
         for offset in offsets:
-            candidate=day+pd.Timedelta(days=offset)
+            candidate=day+dt.timedelta(days=int(offset))
             ds=candidate.strftime('%Y-%m-%d')
             if not ('2021-01-01'<=ds<=FINAL_V07_END):continue
             # Conservative label-derived exclusion only; it does not prove an unreported day was dry.

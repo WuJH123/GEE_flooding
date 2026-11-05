@@ -1,13 +1,13 @@
 {
-  "version": "2026-11-05-v6",
-  "local_tests": "11 passed, 2 skipped due to build environment missing pyarrow; CI must run all 13",
+  "version": "2026-11-05-v6-1-ci-fix",
+  "local_tests": "11 passed, 2 skipped due to missing pyarrow; GitHub CI must run all 13",
   "file_sha256": {
     "README_CN.md": "d2befdad16797028aeda00526332727fda010a1a3aba46d6617f217b38c83b14",
     "cee_v6/__init__.py": "7c4c85111c857dc6e22d1382e0e54e8da38ffaacb618be3892c12a91c340d659",
     "cee_v6/__main__.py": "cf7390a2508a0fcad4777a4a629fc5212ab655cb45845975995f835676a834e3",
     "cee_v6/assemble.py": "0a84557e867a0231bed4b53a0b837cc56153cb24e8cdc1b91e66cb21665177de",
     "cee_v6/cli.py": "9f6af1357f7bdbb39c8a0f707730fc5343344ca49b1172c36ac6e41883e34959",
-    "cee_v6/cohort.py": "0b184430c9fa22b003aec7cb4c52c967fd3b17631a8741e03a3f26bdde730815",
+    "cee_v6/cohort.py": "1d1c183730e94fe60088e8333ca9c633d5761ec0ef9206f5e64e413d4c6f6f88",
     "cee_v6/common.py": "01a91360e0e9ae9bd52caac459e585f34212bc766d81e0d9a32d3c6fe95fa5ed",
     "cee_v6/matching.py": "74f45a01ebfc7db192ad441959dd384afb63d9d4e7bfd8d436bbeac441e01e48",
     "cee_v6/production.py": "3e3a44eb9c74a8396a84aca146732c56f1c462d4ce415b972136199457aeb229",
