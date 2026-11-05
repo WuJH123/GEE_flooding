@@ -1,0 +1,8 @@
+{
+  "minimum_case_24h_mm": 20.0,
+  "minimum_control_24h_mm": 20.0,
+  "max_relative_24h_difference": 0.25,
+  "max_relative_3h_difference": 0.30,
+  "n_controls": 4,
+  "reference_threshold_source": "EXPLORATORY_ABSOLUTE_20MM_ONLY_NOT_PUBLICATION; must replace with auditable local P95 climatology"
+}

@@ -1,0 +1,39 @@
+name: CEE GF10 v6 science and case-control audit
+on:
+  push:
+    paths:
+      - 'gee_ceegf10_v6_science_cohort/**'
+      - '.github/workflows/cee-v6-science-cohort.yml'
+  pull_request:
+    paths:
+      - 'gee_ceegf10_v6_science_cohort/**'
+      - '.github/workflows/cee-v6-science-cohort.yml'
+permissions:
+  contents: read
+jobs:
+  science-cohort-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install v6 full test/runtime dependencies
+        run: python -m pip install -r gee_ceegf10_v6_science_cohort/requirements.txt
+      - name: Offline scientific gates, with warnings treated as errors
+        env:
+          PYTHONPATH: gee_ceegf10_v6_science_cohort
+        run: |
+          python -m compileall -q gee_ceegf10_v6_science_cohort/cee_v6
+          python -m pytest gee_ceegf10_v6_science_cohort/tests -q -W error
+      - name: Verify SHA256 source file manifest
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib
+          base=pathlib.Path('gee_ceegf10_v6_science_cohort')
+          j=json.loads((base/'MANIFEST_SHA256.json').read_text('utf8'))
+          for path,want in j['file_sha256'].items():
+              actual=hashlib.sha256((base/path).read_bytes()).hexdigest()
+              assert actual==want,(path,want,actual)
+          print('VERIFIED',len(j['file_sha256']),'source files')
+          PY

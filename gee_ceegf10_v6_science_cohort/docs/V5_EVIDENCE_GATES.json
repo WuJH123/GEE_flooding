@@ -1,0 +1,23 @@
+{
+  "source": "User-provided v5 QC files uploaded 2026-11-05; these are read-only historical evidence, not newly validated online outputs",
+  "gf10_rows": 1395471,
+  "gf10_sha256": "4ebf864cf2f02ed02faaab42ccb179bb8d6e0a6293aee5e6a155f6ed2b21858d",
+  "v5_preflight_status": "PASS",
+  "v5_science_equivalence_status": "FAIL_COMPACT_ROI",
+  "n_v5_science_comparison_regions": 3,
+  "n_v5_science_band_comparisons": 48,
+  "largest_compact_vs_20km_relative_difference": 0.08982069790363312,
+  "largest_absolute_difference": 96.7724609375,
+  "largest_difference_indicator": "merit_upa_mean_km2",
+  "safe_merit_tiles": 16860,
+  "safe_land_cells": 1395021,
+  "quarantine_tiles": 14,
+  "quarantine_land_cells": 450,
+  "old_engineering_accepted_merit_tiles": 7,
+  "old_engineering_accepted_land_cells": 578,
+  "six_v5_pilots_submitted": false,
+  "audited_case_control_gf10_dates_exists": false,
+  "weather_gEE_case_control_tasks_submitted": false,
+  "project_completed_eecu_hours_from_resource_snapshot": 3.1222553345008377,
+  "note": "Do not count case/control candidates as confirmed flood negatives; do not approve MERIT until buffered convergence and independent source checks pass."
+}
