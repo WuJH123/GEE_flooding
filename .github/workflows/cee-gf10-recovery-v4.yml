@@ -1,0 +1,34 @@
+name: CEE GF10 v4 production edge recovery offline QA
+on:
+  pull_request:
+    paths:
+      - 'gee_ceegf10_v4_edge_recovery/**'
+      - '.github/workflows/cee-gf10-recovery-v4.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'gee_ceegf10_v4_edge_recovery/**'
+      - '.github/workflows/cee-gf10-recovery-v4.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r gee_ceegf10_v4_edge_recovery/requirements.txt
+      - name: Check v4 package imports and 18 safety regression tests
+        run: |
+          python -m compileall -q gee_ceegf10_v4_edge_recovery/cee_recover
+          PYTHONPATH=gee_ceegf10_v4_edge_recovery python -m pytest -q -W error gee_ceegf10_v4_edge_recovery/tests
+      - name: Check source byte hashes
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib
+          root=pathlib.Path('gee_ceegf10_v4_edge_recovery')
+          hashes=json.loads((root/'PACKAGE_SHA256.json').read_text())['files']
+          for p,v in hashes.items():
+              assert hashlib.sha256((root/p).read_bytes()).hexdigest()==v,p
+          print('verified',len(hashes),'source files')
+          PY
