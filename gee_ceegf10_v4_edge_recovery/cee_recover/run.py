@@ -81,7 +81,7 @@ def build_plan(a):
     c=conf()
     g=pd.read_parquet(c['grid_path'],columns=['grid_id','grid_x','grid_y','land_area_km2'])
     p=pd.read_csv(pathlib.Path(c['v3_path'])/'plans'/'merit_all.csv')
-    if len(p)!=16874 or p.tile_key.duplicated().any() or set(p.family)!='merit':
+    if len(p)!=16874 or p.tile_key.duplicated().any() or set(p.family)!={'merit'}:
         raise ValueError('V3 16,874-task frozen MERIT plan is missing/changed; rerun old v3 plan command first')
     # 16,874 * Pandas masks is expensive; exact bbox from pregrouped GF10
     # using the unmodified frozen 10km index coordinates.
