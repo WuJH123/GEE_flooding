@@ -40,3 +40,11 @@ def test_antimeridian_weather_periodic_segments_conserve_width():
   assert 1<=len(parts)<=2
   assert abs(sum(z[2]-z[0] for z in parts)-10000)<1e-5
   assert all(z[0]<z[2] for z in parts)
+
+def test_merit_export_region_preserves_sparse_single_cell_and_packed_extent():
+ for width,height in [(1,1),(40,40)]:
+  x0,y0=-10540000,1300000
+  x1,y1=x0+width*10000,y0+height*10000
+  assert eeops.merit_export_interior([x0,y0,x1,y1])==[x0+1,y0+1,x1-1,y1-1]
+ with pytest.raises(ValueError,match='smaller'):
+  eeops.merit_export_interior([0,0,9999,10000])

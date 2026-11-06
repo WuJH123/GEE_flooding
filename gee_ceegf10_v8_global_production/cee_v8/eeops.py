@@ -79,12 +79,21 @@ def build_merit(ee,root,row,wkt):
  bbox=[x*10000,y*10000,(x+w)*10000,(y+h)*10000]
  if bbox[0]<left+1 or bbox[2]>right-1:raise ValueError('SEAM_MERIT_BLOCK_NOT_SCIENTIFICALLY_EQUIVALENT')
  calc=[max(bbox[0]-80000,left+1),bbox[1]-80000,min(bbox[2]+80000,right-1),bbox[3]+80000]
- center=[bbox[0]+4999,bbox[1]+4999,bbox[2]-4999,bbox[3]-4999]
+ center=merit_export_interior(bbox)
  if not calc[0]<calc[2] or not center[0]<center[2]:raise ValueError('Illegal MERIT output ROI')
  roi=ee.Geometry.Rectangle(calc,proj=wkt,geodesic=False)
  exp=ee.Geometry.Rectangle(center,proj=wkt,geodesic=False)
  image=model.merit(ee,roi,wkt).unmask(-9999)
  return image,exp,bbox
+
+def merit_export_interior(bbox):
+ """Cover source support within all output cells without adding boundary pixels."""
+ x0,y0,x1,y1=map(float,bbox)
+ if x1-x0<10000 or y1-y0<10000:
+  raise ValueError('MERIT export crop smaller than frozen GF10 pixel')
+ # A two-metre centre-only region culled a real sparse island source; a
+ # one-metre outer inset keeps the fixed 10km crsTransform and exact shape.
+ return [x0+1,y0+1,x1-1,y1-1]
 
 def export(ee,kind,source,name,mode='drive',bucket=None,folder=None,wkt=None,region=None):
  if not name.startswith(core.RUN):raise ValueError('Export description not v8 namespace')
