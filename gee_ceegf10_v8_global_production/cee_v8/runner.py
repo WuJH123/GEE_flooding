@@ -285,8 +285,31 @@ def one_tick(root,pkg,mode,bucket,max_inflight=5,max_unaccepted=20,budget_used_e
 
 def run_loop(root,pkg,mode,bucket,max_inflight,max_unaccepted,month_used_eecu,budget_limit_eecu,poll_seconds=90):
  if poll_seconds<15:raise ValueError('No excessive API polling')
+ from google.auth.exceptions import TransportError
+ from requests.exceptions import RequestException
+ transient_failures=0
  while True:
-  z=one_tick(root,pkg,mode,bucket,max_inflight,max_unaccepted,month_used_eecu,budget_limit_eecu,execute=True)
+  try:
+   z=one_tick(root,pkg,mode,bucket,max_inflight,max_unaccepted,month_used_eecu,budget_limit_eecu,execute=True)
+   transient_failures=0
+  except (TransportError,RequestException,TimeoutError) as exc:
+   transient_failures+=1
+   if transient_failures>8:raise
+   delay=min(300,15*2**(transient_failures-1))
+   print(json.dumps({'status':'TRANSIENT_NETWORK_RETRY_NO_NEW_SUBMISSION',
+       'attempt':transient_failures,'retry_after_seconds':delay,
+       'error_type':type(exc).__name__}),flush=True)
+   time.sleep(delay)
+   continue
+  except RuntimeError as exc:
+   if not str(exc).startswith('Live GEE status unavailable for '):raise
+   transient_failures+=1
+   if transient_failures>8:raise
+   delay=min(300,15*2**(transient_failures-1))
+   print(json.dumps({'status':'TRANSIENT_GEE_STATUS_RETRY_NO_NEW_SUBMISSION',
+       'attempt':transient_failures,'retry_after_seconds':delay}),flush=True)
+   time.sleep(delay)
+   continue
   print(json.dumps(z,ensure_ascii=False),flush=True)
   if z['status']!='PRODUCTION_TICK_EXECUTED_NOT_GLOBAL_DONE':break
   c=core.dbopen(pathlib.Path(pkg)/'reports'/'v8_production.sqlite')
