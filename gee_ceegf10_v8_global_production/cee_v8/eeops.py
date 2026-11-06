@@ -72,7 +72,9 @@ def build_weather(ee,root,rows,wkt):
 def build_merit(ee,root,row,wkt):
  model=model_from_local(root)
  x,y=int(row.crop_x0),int(row.crop_y0);w,h=int(row.width),int(row.height)
- if not(1<=w<=10 and 1<=h<=10):raise ValueError('MERIT not an accepted <=10x10 compact block')
+ if not(1<=w<=40 and 1<=h<=40):raise ValueError('Unbounded MERIT packed output (max 40x40 GF10)')
+ if (w*10000+160000)*(h*10000+160000)/(92.77**2)>42e6:
+  raise ValueError('MERIT potential original-resolution computation exceeds verified 42 MPixel proxy')
  left,right=spatial_limits()
  bbox=[x*10000,y*10000,(x+w)*10000,(y+h)*10000]
  if bbox[0]<left+1 or bbox[2]>right-1:raise ValueError('SEAM_MERIT_BLOCK_NOT_SCIENTIFICALLY_EQUIVALENT')
@@ -93,13 +95,13 @@ def export(ee,kind,source,name,mode='drive',bucket=None,folder=None,wkt=None,reg
     fileNamePrefix=core.RUN+'/'+name,fileFormat='CSV',selectors=core.FIELDS)
   return ee.batch.Export.image.toCloudStorage(image=source,description=name,bucket=bucket,
     fileNamePrefix=core.RUN+'/'+name,region=region,crs=wkt,crsTransform=[10000,0,0,0,-10000,0],
-    maxPixels=300,fileFormat='GeoTIFF',formatOptions={'cloudOptimized':True,'noData':-9999})
+    maxPixels=2500,fileFormat='GeoTIFF',formatOptions={'cloudOptimized':True,'noData':-9999})
  if mode=='drive':
   if kind=='weather':return ee.batch.Export.table.toDrive(collection=source,description=name,
       folder=folder or core.RUN,fileNamePrefix=name,fileFormat='CSV',selectors=core.FIELDS)
   return ee.batch.Export.image.toDrive(image=source,description=name,
     folder=folder or core.RUN,fileNamePrefix=name,region=region,crs=wkt,
-    crsTransform=[10000,0,0,0,-10000,0],maxPixels=300,fileFormat='GeoTIFF',
+    crsTransform=[10000,0,0,0,-10000,0],maxPixels=2500,fileFormat='GeoTIFF',
     formatOptions={'cloudOptimized':True,'noData':-9999})
  raise ValueError('Use drive or gcs')
 

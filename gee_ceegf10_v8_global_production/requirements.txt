@@ -8,3 +8,5 @@ google-api-python-client>=2.0
 google-auth>=2.0
 google-cloud-storage>=2.0
 pytest>=8
+
+google-cloud-monitoring>=2.0,<3

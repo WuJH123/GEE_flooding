@@ -7,7 +7,7 @@ its downloaded file passed independent local QC and exact immutable key tests.
 from __future__ import annotations
 import pathlib,json,datetime as dt,time,sqlite3,traceback
 import pandas as pd
-from . import core,plan,eeops,download,qc
+from . import core,plan,eeops,download,qc,optimizer,budget_v9
 
 ACTIVE=('INTENT','QUEUED','READY','RUNNING','PENDING','SUBMITTED')
 FAILED=('FAILED','CANCELLED','CANCELED')
@@ -22,6 +22,12 @@ def register(root,pkg):
  if not q or q.get('status')!='FROZEN_V8_GLOBAL_PRODUCTION_PLAN_READY_NOT_CLOUD_COMPLETE':raise ValueError('V8 immutable plan not verified')
  if q['gf10_sha256']!=core.GRID_SHA or core.sha(pl/'weather_grid_days.parquet')!=q['weather_plan_sha256'] or core.sha(pl/'merit_batches.csv')!=q['merit_plan_sha256']:
   raise ValueError('V8 input plan SHA has changed since frozen!')
+ if q.get('merit_packing_factor_verified'):
+  gate=core.read_json(pathlib.Path(pkg)/'pilot_v9'/'pilot_approval.json')
+  if (not gate or gate.get('approved_max_pack_factor')!=q['merit_packing_factor_verified'] or
+      gate.get('record_sha256')!=q.get('merit_live_pilot_evidence_sha256') or
+      core.sha(pathlib.Path(pkg)/'pilot_v9'/'pilot_ledger.json')!=gate['record_sha256']):
+   raise ValueError('Packed MERIT plan lacks real source-independent science evidence')
  c=core.dbopen(db_path);now=core.timestamp()
  merit=pd.read_csv(pl/'merit_batches.csv')
  weather=pd.read_csv(pl/'weather_batches.csv')
@@ -52,8 +58,13 @@ def membership(pkg,key):
  return f
 
 def merit_row(pkg,key):
- p=pathlib.Path(pkg)/'plans'/'merit_batches.csv'
- f=pd.read_csv(p);a=f[f.batch_id.eq(key)]
+ plans=pathlib.Path(pkg)/'plans'
+ p=plans/'merit_batches.csv'
+ child=plans/'adaptive_merit'/(key+'.csv')
+ if child.exists():
+  f=pd.read_csv(child)
+ else:f=pd.read_csv(p)
+ a=f[f.batch_id.eq(key)]
  if len(a)!=1:raise KeyError('Missing/duplicate MERIT safe block '+key)
  return a.iloc[0]
 
@@ -62,9 +73,9 @@ def report(c):
  total=c.execute('SELECT SUM(COALESCE(eecu_h,0)) FROM jobs').fetchone()[0] or 0
  return {'status':'V8_CHECKPOINT_REAL_QC_ONLY','known_v8_eecu_h':float(total),
   'groups':[dict(z) for z in rows],
-  'merit_safe_tiles_complete':not bool(c.execute("SELECT 1 FROM jobs WHERE family='merit' AND state!='ACCEPTED' LIMIT 1").fetchone()),
+  'merit_safe_tiles_complete':not bool(c.execute("SELECT 1 FROM jobs WHERE family='merit' AND state NOT IN ('ACCEPTED','SPLIT') LIMIT 1").fetchone()),
   'global_merit_all_GF10_complete':False,
-  'all_event_weather_complete':not bool(c.execute("SELECT 1 FROM jobs WHERE family in ('weather','canary') AND state!='ACCEPTED' LIMIT 1").fetchone()),
+  'all_event_weather_complete':not bool(c.execute("SELECT 1 FROM jobs WHERE family in ('weather','canary','canary_child') AND state NOT IN ('ACCEPTED','SPLIT') LIMIT 1").fetchone()),
   'merit_seam450_status':'QUARANTINED_PENDING_INDEPENDENT_NUMERIC_VERIFICATION'}
 
 def _cloud_one(ee,root,pkg,row,mode,bucket=None):
@@ -138,9 +149,15 @@ def _download_qc(c,root,pkg,mode,bucket):
 
 def _choose_jobs(c,kind,limit,canary_ok):
  if not canary_ok:return c.execute("SELECT * FROM jobs WHERE family IN ('canary','canary_child') AND state='PLANNED' LIMIT ?",(limit,)).fetchall()
- # Weather first for temporal panel, alternate families per tick.
- rows=c.execute("SELECT * FROM jobs WHERE family IN ('weather','merit') AND state='PLANNED' ORDER BY CASE WHEN family='weather' THEN 0 ELSE 1 END,key LIMIT ?",(limit,)).fetchall()
- return rows
+ # Keep both static/dynamic work moving. Each tick uses at least one of each
+ # family where available; no 16k MERIT job queue pushed at once.
+ if limit==1:
+  return c.execute("SELECT * FROM jobs WHERE family IN ('weather','merit') AND state='PLANNED' ORDER BY key LIMIT 1").fetchall()
+ a=c.execute("SELECT * FROM jobs WHERE family='merit' AND state='PLANNED' ORDER BY key LIMIT ?",(max(1,limit//2),)).fetchall()
+ b=c.execute("SELECT * FROM jobs WHERE family='weather' AND state='PLANNED' ORDER BY key LIMIT ?",(limit-len(a),)).fetchall()
+ if len(a)+len(b)<limit:
+  a+=c.execute("SELECT * FROM jobs WHERE family='merit' AND state='PLANNED' AND key NOT IN ("+','.join('?' for _ in a)+") ORDER BY key LIMIT ?",tuple([z['key'] for z in a]+[limit-len(a)-len(b)])).fetchall() if a else c.execute("SELECT * FROM jobs WHERE family='merit' AND state='PLANNED' ORDER BY key LIMIT ?",(limit-len(b),)).fetchall()
+ return (a+b)[:limit]
 
 def _adaptive_failure_handling(c,pkg):
     """Bounded weather graph bisect; preserve failed parent and disjoint descendants.
@@ -151,7 +168,26 @@ def _adaptive_failure_handling(c,pkg):
     result=[]
     for row in c.execute('SELECT * FROM jobs WHERE state="FAILED"').fetchall():
         k=row['key']
-        if row['family']=='merit' or row['depth']>=6:
+        if row['family']=='merit':
+            source=merit_row(pkg,k)
+            parents=str(source.get('parent_tiles',''))
+            if not parents or ';' not in parents:
+                core.transition(c,k,'FAILED','QUARANTINED',error=row['error'] or 'Failed single original 10x10 parent; needs scientific review')
+                continue
+            base=pathlib.Path(pkg)/'plans'/'merit_batches_unpacked_v8.csv'
+            if not base.exists():raise ValueError('Missing frozen original MERIT parent mapping for adaptive split')
+            children=optimizer.split_packed_parent(source,pd.read_csv(base).to_dict('records'))
+            out=pathlib.Path(pkg)/'plans'/'adaptive_merit';out.mkdir(parents=True,exist_ok=True)
+            for child in children:
+                cid=child['batch_id'];fp=out/(cid+'.csv')
+                if not fp.exists():pd.DataFrame([child]).to_csv(fp,index=False)
+                c.execute('INSERT OR IGNORE INTO jobs(key,family,state,parent,source_sha,description,n_rows,depth,updated) VALUES(?,?,?,?,?,?,?,?,?)',
+                    (cid,'merit','PLANNED',k,core.sha(fp),'ADAPTIVELY_SPLIT_PACKED_MERIT_'+k,
+                     int(child['n_land_cells']),int(row['depth'])+1,core.timestamp()))
+                result.append(cid)
+            core.transition(c,k,'FAILED','SPLIT')
+            continue
+        if row['depth']>=6:
             core.transition(c,k,'FAILED','QUARANTINED',error=row['error'] or 'No scientifically verified automatic recovery')
             continue
         members=membership(pkg,k)
@@ -218,9 +254,14 @@ def one_tick(root,pkg,mode,bucket,max_inflight=5,max_unaccepted=20,budget_used_e
  # Current-month project baseline must include ALL users and ALL EE products.
  # Avoid double counting historic v8 costs by using maximum of current month project
  # monitoring amount and local estimate, rather than blindly adding them.
- if budget_used_eecu+cost+max_inflight*0.5>budget_limit_eecu:
-  return {'status':'BUDGET_FUSE_PAUSE','project_month_used_supplied':budget_used_eecu,
-   'v8_logged_eecu':cost,'n_running':incomplete,'n_newly_accepted':got}
+ # Use LIVE project-wide Cloud Monitoring (completed + currently processing).
+ # The old --month-used-eecu CLI parameter is retained for compatibility but
+ # never used as a substitute for the authoritative project metric.
+ usage=budget_v9.current_month_eecu_hours(core.PROJECT)
+ budget=budget_v9.budget_decision(usage,limit=budget_limit_eecu,simultaneous=max_inflight)
+ if not budget['can_submit']:
+  return {'status':'BUDGET_FUSE_PAUSE','project_month_live_eecu_h':budget['project_eecu_h'],
+   'v8_logged_eecu':cost,'n_running':incomplete,'n_newly_accepted':got,'budget':budget}
  if c.execute("SELECT 1 FROM jobs WHERE family IN ('canary','canary_child') AND state='QUARANTINED' LIMIT 1").fetchone():
   return {'status':'CANARY_SCIENTIFIC_QC_FAILED_GLOBAL_WEATHER_BLOCKED','n_unresolved':unaccepted}
  if c.execute("SELECT COUNT(*) FROM jobs WHERE state='QUARANTINED'").fetchone()[0]>0:

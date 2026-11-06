@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-06-v8-3-coastal-exact-land-membership",
+  "version": "2026-11-06-v9-official-adaptive-packing",
   "files": {
     "README_CN.md": "de786d3c05d823ba48dffc2c66d0467b3a6cc44741fde98b89ac331a3d36d1a5",
     "cee_v8/__init__.py": "3dcd08205396de011a9086e6012855fbc410d17b833d1e52698655190a43ca9c",
@@ -8,19 +8,31 @@
     "cee_v8/cli.py": "6d5c5457571031d8d27ce30bdb237f07355cff1d504fe9905bcf3b30032c9032",
     "cee_v8/core.py": "75b02a00def003476b497408fae9bc0d7efd17ac6f7561bab4439a5554f488c6",
     "cee_v8/download.py": "d77446d7006418eff2d043a0084f64860d46b4ca0829c51dae8c8c0fd3abdec4",
-    "cee_v8/eeops.py": "b531522007f6898d6af2c644d4eb267bad69a36bb10015698db77ed9eb8c4828",
+    "cee_v8/eeops.py": "62f64702528f596f02a87b56a16ccfc9a08dc01f01df1fd6df4632f78ffa0849",
     "cee_v8/plan.py": "6d49c9c8bba03622321d39b46e6bf37333e5075fba4009925655b94d2c53c5c7",
     "cee_v8/qc.py": "c7038290cb9d9f280d768e90ee03ce41a604ae7f1e31f8d1a5902d2b5e32a477",
-    "cee_v8/runner.py": "03d6357e34fedc717b8d47fa3bb652b0a682574d4040124c16e87efe8962d5cc",
+    "cee_v8/runner.py": "a70f50c6b1f5e0ff39498e965130344b7a2547ca03c71d9703633ce439b1c5ed",
     "cee_v8/seam.py": "28d9fcf9dc6327e572ca51bb20f6e9162b4ceb0f521a85464175c78f4507909d",
     "docs/CODEX_FULL_RUN_PROMPT_CN.md": "b85a020b829ea2b4d1711408501745a4bee491d45cda9c82ac31ea6c3bd2d90c",
-    "requirements.txt": "3cafb0683bc86981fcd31a60a0137d57f8a29692b4a9eb5e8b787360915dcb07",
+    "requirements.txt": "d94c37f9fcaead7c723ced9694c141cadb6362445ec1110fab6e4138c693a532",
     "scripts/00_prepare_and_register.ps1": "71eced8e75918b4f757005bd16b9e971034d248df26a13ffe9821b6f8f27e92e",
     "scripts/01_run_global_automatic.ps1": "4905f1906a228f3dcd9528c595accc673c3e69ef27d9a04abf2ef72e70efbb87",
     "tests/test_v8_ledger_and_io.py": "12894c1d1d956030aa8f61dadbb21e1cbe9bc5db2faa9bc35f056f0d41f57c3b",
-    "tests/test_v8_science.py": "898ac747cfac2bebc6dc0b4ff3869d0b217208bea33bdc3948db3f0e092aa8ed"
+    "tests/test_v8_science.py": "898ac747cfac2bebc6dc0b4ff3869d0b217208bea33bdc3948db3f0e092aa8ed",
+    "docs/CODEX_V9_CN.md": "e7117bc9fc4d5b0a0a4c79564404e0c53e0b0a3d95d83869767b4f7674f6aa60",
+    "docs/README_V9_CN.md": "e2da2a29467d9594b98411445e52c463689fac188820747b6c7c53bf1747b94f",
+    "cee_v8/budget_v9.py": "d6f34a29c2b2684d0e760bbc68fab60fde19a61ee2915a31f53f1aa349157082",
+    "cee_v8/optimizer.py": "936804c6af975c3deb3e93d5f99f57463d8a293a2ec751e44f1153ac0528036f",
+    "cee_v8/optimizer_cli_v9.py": "022739b9b03cf24b1a6e75c1ac3566cbc36ab48107abad1fafcaf8fced8d96ac",
+    "cee_v8/pilot_v9.py": "58473f0f1fcc9745d631c9810e580dc4c248244b5e9b03836b72a58fd74330e4",
+    "scripts/02_v9_official_bounded_run.ps1": "829ae783e56a4f4162a507d0b7af7bde002b57ea2881c2f43109b0542e7a28d7",
+    "tests/test_budget.py": "7182b277c0e6939071cd7ef3cab2f3b99a0325ce754f36c7ad5bfc7b2fd228aa",
+    "tests/test_optimizer.py": "1d5555e1d1032d600f0b21c70a9ff17b5a9af3b7d2568bc0b76c17351fef9f80",
+    "tests/test_pilot_basic.py": "5567ad6377431bf2cb142b37587b6f1aa855f8e10f9027cfaaf77afb71c7cf2d"
   },
   "source_frozen_gf10_sha256": "4ebf864cf2f02ed02faaab42ccb179bb8d6e0a6293aee5e6a155f6ed2b21858d",
-  "local_offline_tests": "20 passed",
-  "no_live_gee_submissions_from_this_environment": true
+  "local_offline_tests": "8 optimizer/budget tests passed; v8 full CI pending",
+  "no_live_gee_submissions_from_this_environment": true,
+  "live_gee_pilots": "MANDATORY_BEFORE_PACK_PROMOTION",
+  "cloud_production_run": false
 }
