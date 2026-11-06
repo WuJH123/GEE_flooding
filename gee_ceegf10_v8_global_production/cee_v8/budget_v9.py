@@ -28,29 +28,34 @@ def current_month_eecu_hours(project_id, now_utc=None):
     This method requires Monitoring Viewer IAM and Cloud Monitoring API. It
     raises rather than inferring usage from a subset of task ledger entries.
     """
-    from google.cloud import monitoring_v3
-    from google.protobuf.timestamp_pb2 import Timestamp
-    from google.protobuf.duration_pb2 import Duration
+    from google.auth.transport.requests import AuthorizedSession
+    import ee
     now=now_utc or dt.datetime.now(dt.timezone.utc)
     start=pacific_month_start_utc(now)
-    c=monitoring_v3.MetricServiceClient()
-    interval=monitoring_v3.TimeInterval(
-      start_time=start,end_time=now)
-    agg=monitoring_v3.Aggregation(
-      alignment_period=dt.timedelta(hours=1),
-      per_series_aligner=monitoring_v3.Aggregation.Aligner.ALIGN_SUM)
+    credentials=ee.data.get_persistent_credentials().with_quota_project(project_id)
+    session=AuthorizedSession(credentials)
+    endpoint=f'https://monitoring.googleapis.com/v3/projects/{project_id}/timeSeries'
     values={}
     for key,mtype in METRICS.items():
-        q=f'metric.type = "{mtype}"'
-        s=c.list_time_series(request={
-           'name':f'projects/{project_id}','filter':q,
-           'interval':interval,'view':monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
-           'aggregation':agg})
         seconds=0.0
-        for series in s:
-            for point in series.points:
-                v=point.value
-                seconds += float(v.double_value or v.int64_value or 0.0)
+        token=None
+        while True:
+            params={'filter':f'metric.type = "{mtype}"',
+                    'interval.startTime':start.isoformat().replace('+00:00','Z'),
+                    'interval.endTime':now.isoformat().replace('+00:00','Z'),
+                    'aggregation.alignmentPeriod':'3600s',
+                    'aggregation.perSeriesAligner':'ALIGN_SUM',
+                    'view':'FULL','pageSize':1000}
+            if token:params['pageToken']=token
+            response=session.get(endpoint,params=params,timeout=60)
+            response.raise_for_status()
+            body=response.json()
+            for series in body.get('timeSeries',[]):
+                for point in series.get('points',[]):
+                    v=point.get('value',{})
+                    seconds+=float(v.get('doubleValue',v.get('int64Value',0)))
+            token=body.get('nextPageToken')
+            if not token:break
         values[key]=seconds/3600.0
     return {'status':'MONITORING_PROJECT_WIDE_EECU',
          'project':project_id,'month_start_utc':start.isoformat(),

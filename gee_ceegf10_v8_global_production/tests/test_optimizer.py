@@ -36,14 +36,17 @@ def test_full_duplicates_fatal():
  with pytest.raises(ValueError,match='Duplicate'):pack_safe(x,4)
 
 def test_science_gate_rejects_missing_or_fake():
- assert choose_factor_from_live([dict(factor=4,state='SUCCEEDED')]*3)==0
+ assert choose_factor_from_live([dict(factor=4,state='ACCEPTED')]*3)==0
 
 def test_science_gate_passes_three_independent_strata():
  r=[]
  for typ in ['coastal','high_latitude','inland']:
-  r.append(dict(factor=2,state='SUCCEEDED',source_sha256='a'*64,reference_sha256='b'*64,
+  r.append(dict(factor=2,state='ACCEPTED',source_sha256='a'*64,reference_sha256='b'*64,
        task_id=typ,eecu_h=0.1,reference_count=40,stratum=typ,p95_rel=0.,max_rel=0.,
        mask_mismatch=0,n_bad_bands=0,task_wall_seconds=50))
  assert choose_factor_from_live(r)==2
  r[1]['mask_mismatch']=1
+ assert choose_factor_from_live(r)==0
+ r[1]['mask_mismatch']=0
+ r[1]['state']='SUCCEEDED'
  assert choose_factor_from_live(r)==0

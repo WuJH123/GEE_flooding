@@ -20,6 +20,16 @@ def _write_json_once(path,data):
     core.write_json(path,data)
 
 
+def _accepted_reference(frame):
+    """V7 partial product retains every GF10 ID; only measured rows are reference."""
+    if 'merit_valid_fraction' not in frame:
+        raise ValueError('V7 reference validity band missing')
+    measured=frame.loc[frame.merit_valid_fraction.notna()].copy()
+    if len(measured)!=863 or measured.grid_id.duplicated().any():
+        raise ValueError('V7 accepted MERIT reference must contain exactly 863 unique measured cells')
+    return measured
+
+
 def create_pilot_plan(root,pkg):
     """Create 3 representative real baseline-reference comparisons per size."""
     files=core.root_files(root)
@@ -39,7 +49,8 @@ def create_pilot_plan(root,pkg):
             raise ValueError('V4 safe tile missing actual land members '+r['tile_key'])
         full.append(r)
     old=files['v7']/'data'/'merit_v7_batch5_accepted_partial.parquet'
-    base=pd.read_parquet(old,columns=['grid_id'])
+    base=pd.read_parquet(old,columns=['grid_id','merit_valid_fraction'])
+    base=_accepted_reference(base)[['grid_id']]
     accepted=set(base.grid_id.astype(str))
     ref=grid[grid.grid_id.astype(str).isin(accepted)].copy()
     ref['stratum']='inland'
@@ -50,15 +61,24 @@ def create_pilot_plan(root,pkg):
     if missing:raise ValueError('V7 accepted reference cannot verify essential environment strata '+str(missing))
     selected=[]
     used_by_factor={2:set(),3:set(),4:set()}
+    from collections import defaultdict
+    grouped={factor:defaultdict(list) for factor in (2,3,4)}
+    for parent in full:
+        px,py=optimizer._xy(parent)
+        for factor in grouped:
+            grouped[factor][(px//(factor*10),py//(factor*10))].append(parent)
+    merged_cache={factor:{} for factor in grouped}
     for factor in (2,3,4):
         for stratum in strata:
             a=ref.loc[ref.stratum==stratum].sort_values(['grid_x','grid_y'])
             candidates=[]
             for anc in a.itertuples(index=False):
                 gx=(int(anc.grid_x)//(factor*10));gy=(int(anc.grid_y)//(factor*10))
-                parents=[r for r in full if (optimizer._xy(r)[0]//(factor*10),optimizer._xy(r)[1]//(factor*10))==(gx,gy)]
+                parents=grouped[factor].get((gx,gy),[])
                 if not parents:continue
-                merged=optimizer._group_rows(parents,factor)
+                if (gx,gy) not in merged_cache[factor]:
+                    merged_cache[factor][(gx,gy)]=optimizer._group_rows(parents,factor)
+                merged=merged_cache[factor][(gx,gy)]
                 compare=accepted&set(merged['land_ids'].split(';'))
                 if (merged['width']>factor*10 or merged['height']>factor*10 or
                     merged['native_source_megapixels_estimate']>42):continue
@@ -123,6 +143,7 @@ def tick_pilots(root,pkg,storage='drive',bucket=None,max_inflight=2):
     ledger_file=pp/'pilot_ledger.json'; ledger=core.read_json(ledger_file,{})
     src=core.root_files(root)['v7']/'data'/'merit_v7_batch5_accepted_partial.parquet'
     accepted=pd.read_parquet(src)
+    accepted=_accepted_reference(accepted)
     if len(accepted)!=863 or not set(core.BANDS)<=set(accepted):
         raise ValueError('Accepted V7 MERIT 16-band source is not intact')
     live=0
@@ -181,6 +202,11 @@ def tick_pilots(root,pkg,storage='drive',bucket=None,max_inflight=2):
             ent.update(state='QUARANTINED',error=str(t[0].get('error_message','EE pilot failed')))
         else:ent['state']=state
         ledger[name]=ent;core.write_json(ledger_file,ledger)
+    if any(ent.get('state')=='QUARANTINED' for ent in ledger.values()):
+        return {'status':'PILOT_SCIENTIFIC_QUARANTINE_STOP',
+                'n_jobs':len(rows),'n_accepted':sum(z['state']=='ACCEPTED' for z in ledger.values()),
+                'n_quarantined':sum(z['state']=='QUARANTINED' for z in ledger.values()),
+                'n_active':sum(z['state'] not in ('ACCEPTED','QUARANTINED') for z in ledger.values())}
     for r in rows.to_dict('records'):
         name=core.RUN+'_P9_'+r['batch_id']
         if name in ledger:continue
