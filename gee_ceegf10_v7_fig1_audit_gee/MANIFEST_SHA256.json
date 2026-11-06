@@ -1,0 +1,31 @@
+{
+  "version": "20261106_v7.0",
+  "files": {
+    "README_CN.md": "9cf51ff3a5658c1ca8340017392aeeadb60aed7a9ceaeb6a1725add2efb1b90b",
+    "cee_v7/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cee_v7/__main__.py": "7225097a5dc4f99152ba1dc5324ed73d5ee09508cbc5268fa3b1114905340036",
+    "cee_v7/builder.py": "8c82f8c4352e6cc24a61e8468dc921607337218c9c46fa1ed6b6fd0066fe59dd",
+    "cee_v7/candidates.py": "d344e6519590fa4b2bf21c0388d5a6eccae844c499176a1dc579b3920f53b113",
+    "cee_v7/cli.py": "855b587e0aa4ad53d1eefc6a842b5f09bc248ec1b3a8ea0b02b22edeea20ba85",
+    "cee_v7/core.py": "b70412e45224e5511df09ba827dcc943bfba8506731eb395a7d940be31b2f21e",
+    "cee_v7/gee.py": "5d419356dc389b0330aa9bea4cf383d9ce652781dda0c2aea62c090ae52ce0ef",
+    "cee_v7/geometry.py": "3c63a461a6abb64e5c3c3025ad1f294242c2864472aa6f2a1808058c73109bd5",
+    "cee_v7/review.py": "34cadc16fc0b56e14cc2c5686d1284bfa370806325fe359fb4b3790cdec409c9",
+    "config/validation_contract.json": "4a9dfcd58c252c4c931d67dddb5d37a5914743d5ee5170b9ea94227c30797530",
+    "docs/CODEX_RUN_CN.md": "d0b823065b754d9385bce9d28374400df1cff0b1c7d366eada1d0e2dee200675",
+    "docs/V6_COASTAL_8x10_HOTFIX.txt": "8ed8d5ac8c85971d01fe829acb864dfa0a9d462af7c155d40e35ab4a7933e875",
+    "pytest.ini": "be159d91a8fb72d31fc4352ce3bc833d3855e4b3b77246c7a47fb06ac0c2660c",
+    "requirements.txt": "c5b0d7dd67cbf83439941d6a82cf1c9f057f357deb0fb386ca5c4ca376566cc5",
+    "scripts/00_check.ps1": "360f0b6f4550bd33f4ad15c5c4c1528da4c9fb6f4eadad6e057c3d01f6cc09d8",
+    "scripts/01_build_provenance.ps1": "6918283acec15e1018cf83f9d0c49e767f5440546a10f25588a851ad12a0f04d",
+    "scripts/02_preextract_plan.ps1": "457dc5558c9a264de0e288af7594bd55a80b42713e6b0defb29e904a5de5b522",
+    "scripts/03_one_gee_weather_pilot.ps1": "59975dcad4ecc7303af57785789f64b513108581ec0cb787b0de85249989a8ef",
+    "tests/test_candidates.py": "4d1962b970f91c25c6cf94f81dc10f74575033629504e729a5986e3b4889f088",
+    "tests/test_core.py": "57cb95ca13b5baab7a2bf08be070ee8c82faf928e4d1ffabbfea9b8fd041af99",
+    "tests/test_gee_safety.py": "393f866866535b33ffbf857dc8a8c8260928f9e001b6b8141a9151db80b7df78",
+    "tests/test_geometry.py": "81c0505f5c3f7697e2b84aab082230f8f4a3a2adb36968024ee82861ef627d60",
+    "tests/test_real_lineage_parquet.py": "e8beb256e6f47039b09e9451f991291eab8995436273f86425fd8db7097bddbc",
+    "tests/test_v6_rectangular_hotfix.py": "2457e8d02092e46350b4e8e5deaa12a4fc8b4d1a29ac6ce62dfd589f3cdd55d4"
+  },
+  "CI_full_parquet_tests_required": true
+}
