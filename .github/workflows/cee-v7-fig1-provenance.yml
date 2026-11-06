@@ -1,0 +1,41 @@
+name: CEE GF10 v7 Figure1 original UUID city + GEE source audit
+on:
+  push:
+    paths:
+      - 'gee_ceegf10_v7_fig1_audit_gee/**'
+      - 'gee_ceegf10_v6_science_cohort/cee_v6/production.py'
+      - '.github/workflows/cee-v7-fig1-provenance.yml'
+  pull_request:
+    paths:
+      - 'gee_ceegf10_v7_fig1_audit_gee/**'
+      - 'gee_ceegf10_v6_science_cohort/cee_v6/production.py'
+      - '.github/workflows/cee-v7-fig1-provenance.yml'
+jobs:
+  traceable-fig1-and-weather:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact publication provenance dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r gee_ceegf10_v7_fig1_audit_gee/requirements.txt
+      - name: Run v7 algorithm and synthetic Parquet/UCDB integration tests
+        env:
+          PYTHONPATH: gee_ceegf10_v7_fig1_audit_gee:gee_ceegf10_v6_science_cohort:gee_ceegf10_v3_efficient
+        run: |
+          python -m compileall -q gee_ceegf10_v7_fig1_audit_gee/cee_v7
+          python -m pytest gee_ceegf10_v7_fig1_audit_gee/tests -q -W error -ra
+      - name: Strict v7 SHA256 and scientific provenance manifest
+        run: |
+          python - <<'PYCHK'
+          import hashlib,json,pathlib
+          p=pathlib.Path('gee_ceegf10_v7_fig1_audit_gee')
+          m=json.loads((p/'MANIFEST_SHA256.json').read_text())['files']
+          for name,sha in m.items():
+            actual=hashlib.sha256((p/name).read_bytes()).hexdigest()
+            if sha!=actual:raise SystemExit(f'Immutable source mismatch: {name}')
+          print('SOURCE_SHA256_PASS',len(m))
+          PYCHK

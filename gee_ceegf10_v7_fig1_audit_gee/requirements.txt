@@ -1,0 +1,11 @@
+# Reuse the E:\GEE_flooding\.venv when installed; Python 3.12 on Windows.
+pyarrow>=15,<25
+pandas>=2.2,<3
+numpy>=2,<3
+shapely>=2.1,<3
+geopandas>=1.0,<2
+pyproj>=3.6,<4
+pyogrio>=0.10
+rasterio>=1.3
+earthengine-api>=1.5
+pytest>=8

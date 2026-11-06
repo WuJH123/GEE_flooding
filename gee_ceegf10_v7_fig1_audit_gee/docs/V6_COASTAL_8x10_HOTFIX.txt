@@ -1,0 +1,1 @@
+In GitHub gee_ceegf10_v6_science_cohort/cee_v6/production.py:248 remove positional n=w; v6 already checks exact (width,height,count)=(w,h,16) and affine. Preserve all earlier reports and TIFF.

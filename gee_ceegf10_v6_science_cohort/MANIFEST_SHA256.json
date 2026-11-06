@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-05-v6-1-ci-fix",
+  "version": "2026-11-06-v6-2-coastal-rectangular-validation",
   "local_tests": "11 passed, 2 skipped due to missing pyarrow; GitHub CI must run all 13",
   "file_sha256": {
     "README_CN.md": "d2befdad16797028aeda00526332727fda010a1a3aba46d6617f217b38c83b14",
@@ -10,7 +10,7 @@
     "cee_v6/cohort.py": "1d1c183730e94fe60088e8333ca9c633d5761ec0ef9206f5e64e413d4c6f6f88",
     "cee_v6/common.py": "01a91360e0e9ae9bd52caac459e585f34212bc766d81e0d9a32d3c6fe95fa5ed",
     "cee_v6/matching.py": "74f45a01ebfc7db192ad441959dd384afb63d9d4e7bfd8d436bbeac441e01e48",
-    "cee_v6/production.py": "3e3a44eb9c74a8396a84aca146732c56f1c462d4ce415b972136199457aeb229",
+    "cee_v6/production.py": "fd26345f72b7f6c687cd69483c108d24c76a4f58593980d58ff5d2cd1228850f",
     "cee_v6/science.py": "30fe54ec261e703a2bfb0609d2feb415ae95e41f8bd9495806d74cb206f891a6",
     "config/REQUIRED_FIG1_MAPPING_SCHEMA.json": "a701ee91a12e380128c2dc358093997fee8d0c10f895e0789513d932c9daaad2",
     "config/exploratory_rain_matching_policy.json": "04425159029d57da3eeb93aadbbd667e6f839194c88fd4a9cceb5c5726cbd839",
@@ -26,5 +26,6 @@
     "tests/test_matching.py": "256ad6dec8b4d7a843f8f4ba7f0596f1d352e82c89a58fd8e518adb8a14bdd7d",
     "tests/test_production.py": "de2c84d4aaeb86bdbcf0c77656bf23073c47c27d29adf75506f071e4f77d9577",
     "tests/test_science.py": "aa6aa98aeb6b5ef553546377f180b91c11abaed16ac805811e89eb0988bc26a1"
-  }
+  },
+  "coastal_8x10_hotfix": "v6 already validates exact raster width/height and affine; remove erroneous legacy square size check"
 }

@@ -245,7 +245,7 @@ def audit_halo(key,local_tif):
         if any(abs(a-b)>1e-6 for a,b in zip(tuple(tf)[:6],(10000.,0.,float(xx*10000),0.,-10000.,float((yy+h)*10000)))):
             raise ValueError('MERIT exact affine transform mismatch')
     from ceeprodgee import qc
-    check=qc.check_raster(p,'merit',xx,yy,w,expected_manifest=BANDS)
+    check=qc.check_raster(p,'merit',xx,yy,expected_manifest=BANDS)
     # Do not mark QC_PASS only based on local file if EE terminal status is unverified.
     z['local_qc_pass']=False;z['local_file_sha256']=sha(p);z['raster_qc']=check
     z['local_qc_geometry_pass']=True

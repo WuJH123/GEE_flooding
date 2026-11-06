@@ -1,0 +1,22 @@
+{
+  "version": "v7.0-20261106",
+  "project": "future-shuttle-513705-g9",
+  "gf10_cells": 1395471,
+  "gf10_sha256": "4ebf864cf2f02ed02faaab42ccb179bb8d6e0a6293aee5e6a155f6ed2b21858d",
+  "raw_groundsource_sha256": "77c266ba5a5176d983edca989a81ff73f21c556fd98c82e2131c2f8d172546ce",
+  "official_groundsource_record_count": 2646302,
+  "figure1_tier_rule": "A; primary_overlap numeric >=0.8; n_candidate_cells<=4; HIGH_GEOCODE_SPECIFICITY; raw start=end equals primary date",
+  "geocode_polygon_not_inundation": true,
+  "ucdb_city_geometry_overlap_min": 0.85,
+  "gf10_geometry_overlap_min": 0.85,
+  "max_reported_place_polygon_area_km2": 25,
+  "date_exact_utc_independently_verified_by_raw": false,
+  "meteorology_UTC_date_role": "source calendar day proxy, ±1 day sensitivity pending",
+  "reporting_case_not_inundation_truth": true,
+  "unreported_calendar_day_not_verified_flood_negative": true,
+  "official_imerg_permanent_end": "2025-09-30",
+  "no_remote_submission_without_explicit_execute": true,
+  "merit_halo_science_gate": "PASS_20_40_80_HALO_NUMERIC_CONVERGENCE",
+  "seam_quarantine_cells_pending": 450,
+  "previous_merit_partial_cells_accepted": 375
+}
