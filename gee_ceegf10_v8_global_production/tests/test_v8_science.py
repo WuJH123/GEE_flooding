@@ -4,6 +4,25 @@ import numpy as np
 import pytest
 from cee_v8 import core,plan,qc,runner
 
+def test_run_loop_retries_transient_oauth_failure_without_a_second_submission(monkeypatch):
+ from google.auth.exceptions import TransportError
+ calls=[];delays=[]
+ def tick(*args,**kwargs):
+  calls.append(kwargs)
+  if len(calls)==1:raise TransportError('temporary proxy disconnect')
+  return {'status':'BUDGET_FUSE_PAUSE'}
+ monkeypatch.setattr(runner,'one_tick',tick)
+ monkeypatch.setattr(runner.time,'sleep',lambda seconds:delays.append(seconds))
+ assert runner.run_loop('root','pkg','drive',None,2,10,0,900,60)=={'status':'BUDGET_FUSE_PAUSE'}
+ assert len(calls)==2 and all(z['execute'] for z in calls)
+ assert delays==[15]
+
+def test_run_loop_does_not_retry_scientific_error(monkeypatch):
+ def tick(*args,**kwargs):raise ValueError('scientific QC changed')
+ monkeypatch.setattr(runner,'one_tick',tick)
+ with pytest.raises(ValueError,match='scientific QC'):
+  runner.run_loop('root','pkg','drive',None,2,10,0,900,60)
+
 def fake(n=30):
  t=pd.date_range('2021-01-01',periods=9)
  return pd.DataFrame({'grid_id':[str(i//3)+'_'+str(i) for i in range(n)],

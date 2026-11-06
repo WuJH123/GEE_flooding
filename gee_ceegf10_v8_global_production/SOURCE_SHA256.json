@@ -11,14 +11,14 @@
     "cee_v8/eeops.py": "4d447055746564574ac9d73599e5dfcc6afd0f4caef72947db8562cb288482cd",
     "cee_v8/plan.py": "6d49c9c8bba03622321d39b46e6bf37333e5075fba4009925655b94d2c53c5c7",
     "cee_v8/qc.py": "c7038290cb9d9f280d768e90ee03ce41a604ae7f1e31f8d1a5902d2b5e32a477",
-    "cee_v8/runner.py": "a70f50c6b1f5e0ff39498e965130344b7a2547ca03c71d9703633ce439b1c5ed",
+    "cee_v8/runner.py": "c6a98109db20a5799f69bb7e95f805197ec7502318de1598d4c2d33de536f1dc",
     "cee_v8/seam.py": "28d9fcf9dc6327e572ca51bb20f6e9162b4ceb0f521a85464175c78f4507909d",
     "docs/CODEX_FULL_RUN_PROMPT_CN.md": "b85a020b829ea2b4d1711408501745a4bee491d45cda9c82ac31ea6c3bd2d90c",
     "requirements.txt": "d94c37f9fcaead7c723ced9694c141cadb6362445ec1110fab6e4138c693a532",
     "scripts/00_prepare_and_register.ps1": "71eced8e75918b4f757005bd16b9e971034d248df26a13ffe9821b6f8f27e92e",
     "scripts/01_run_global_automatic.ps1": "4905f1906a228f3dcd9528c595accc673c3e69ef27d9a04abf2ef72e70efbb87",
     "tests/test_v8_ledger_and_io.py": "2860b1ffc2b9293c6bfbb478c2aaeaabd88dbc960f648dfa621f454d70581471",
-    "tests/test_v8_science.py": "6f4c4f233fdfba228a5c8ae6ac51c9f11e20cfebd65ea0f28845ad48b27b0564",
+    "tests/test_v8_science.py": "fa1fac6efa19c5eff4832c9134dfcf8b4ed683fc34fc41c03a1c7dacd7e0e8c9",
     "docs/CODEX_V9_CN.md": "e7117bc9fc4d5b0a0a4c79564404e0c53e0b0a3d95d83869767b4f7674f6aa60",
     "docs/README_V9_CN.md": "e2da2a29467d9594b98411445e52c463689fac188820747b6c7c53bf1747b94f",
     "cee_v8/budget_v9.py": "b9605ef2ad11808e404c7866a1fc14f735356505be62f79e15a1533d665373ae",
@@ -31,8 +31,8 @@
     "tests/test_pilot_basic.py": "eb9d3f9cfbb0ba119b5abe74c95b8712e387e16eced4c1750190459e7dbd0bf5"
   },
   "source_frozen_gf10_sha256": "4ebf864cf2f02ed02faaab42ccb179bb8d6e0a6293aee5e6a155f6ed2b21858d",
-  "local_offline_tests": "31 v9 offline regression tests passed with -W error on 2026-11-06",
+  "local_offline_tests": "33 v9 offline regression tests passed with -W error on 2026-11-06",
   "no_live_gee_submissions_from_this_environment": false,
   "live_gee_pilots": "9 packing canaries and 2 geometry recovery comparisons accepted locally; see local immutable QC ledgers",
-  "cloud_production_run": "IN_PROGRESS_LOCAL_NOT_GLOBAL_COMPLETE; sparse island recovery accepted and parent failure retained"
+  "cloud_production_run": "IN_PROGRESS_LOCAL_NOT_GLOBAL_COMPLETE; transient OAuth outage retried without duplicate task submission"
 }
