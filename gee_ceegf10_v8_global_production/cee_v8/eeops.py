@@ -25,10 +25,32 @@ def spatial_limits():
  tr=Transformer.from_crs(4326,6933,always_xy=True)
  return sorted((tr.transform(-180,0)[0],tr.transform(180,0)[0]))
 
+def projected_seam_segments(x,y):
+    """Periodic x representation of one original EPSG6933 10km cell.
+
+    This applies ONLY to sampled coarse meteorology; MERIT source hydrology
+    still needs independent native-pixel science verification for seam 450.
+    """
+    lo,hi=spatial_limits();width=hi-lo
+    a=x*10000.;length=10000.
+    start=(a-lo)%width+lo
+    end=start+length
+    yy=y*10000.;top=(y+1)*10000.
+    if end<=hi:
+        return [[start,yy,end,top]]
+    return [[start,yy,hi,top],[lo,yy,lo+(end-hi),top]]
+
+
 def rect(ee,x,y,proj):
- lo,hi=spatial_limits();a=x*10000;b=(x+1)*10000
- if a < lo+1 or b > hi-1:raise ValueError('SEAM_GF10_REQUIRES_INDEPENDENT_RECOVERY')
- return ee.Geometry.Rectangle([a,y*10000,b,(y+1)*10000],proj=proj,geodesic=False)
+    segments=projected_seam_segments(x,y)
+    if len(segments)==1:
+        return ee.Geometry.Rectangle(segments[0],proj=proj,geodesic=False)
+    # A bounded two-polygon periodic window, never a 360-degree raster warp.
+    rings=[]
+    for xa,ya,xb,yb in segments:
+        rings.append([[[xa,ya],[xb,ya],[xb,yb],[xa,yb],[xa,ya]]])
+    return ee.Geometry.MultiPolygon(rings,proj=proj,geodesic=False)
+
 
 def build_weather(ee,root,rows,wkt):
  model=model_from_local(root)

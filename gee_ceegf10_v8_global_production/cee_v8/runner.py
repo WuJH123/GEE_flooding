@@ -72,7 +72,7 @@ def _cloud_one(ee,root,pkg,row,mode,bucket=None):
  c=paths['v4']/'config'/'recovery.json';config=core.read_json(c)
  if not config or config.get('project')!=core.PROJECT or config.get('grid_sha256')!=core.GRID_SHA:raise ValueError('Upstream v4 not approved')
  wkt=config['crs_wkt'];key=row['key'];kind=row['family'];name=core.RUN+'_'+key
- if kind in ('weather','canary'):
+ if kind in ('weather','canary','canary_child'):
   members=membership(pkg,key)
   collection=eeops.build_weather(ee,root,members,wkt)
   return eeops.export(ee,'weather',collection,name,mode,bucket)
@@ -124,7 +124,10 @@ def _download_qc(c,root,pkg,mode,bucket):
   try:
    if kind=='merit':result=qc.merit(path,merit_row(pkg,key))
    else:
-    ref=pd.read_parquet(pl/'accepted_v7_weather.parquet') if kind=='canary' else None
+    ref=pd.read_parquet(pl/'accepted_v7_weather.parquet') if kind in ('canary','canary_child') else None
+    if ref is not None and kind=='canary_child':
+     keys=set(zip(membership(pkg,key).grid_id.astype(str),membership(pkg,key).date_utc.astype(str)))
+     ref=ref[[ (str(g),str(d)) in keys for g,d in zip(ref.grid_id,ref.date_utc) ]]
     result=qc.weather(path,membership(pkg,key),reference=ref)
    core.write_json(path.with_suffix('.qc.json'),result)
    core.transition(c,key,'SUCCEEDED','ACCEPTED',local_sha=core.sha(path),file_name=path.name)
@@ -134,7 +137,7 @@ def _download_qc(c,root,pkg,mode,bucket):
  return accepted,quarantined
 
 def _choose_jobs(c,kind,limit,canary_ok):
- if not canary_ok:return c.execute("SELECT * FROM jobs WHERE family='canary' AND state='PLANNED' LIMIT ?",(limit,)).fetchall()
+ if not canary_ok:return c.execute("SELECT * FROM jobs WHERE family IN ('canary','canary_child') AND state='PLANNED' LIMIT ?",(limit,)).fetchall()
  # Weather first for temporal panel, alternate families per tick.
  rows=c.execute("SELECT * FROM jobs WHERE family IN ('weather','merit') AND state='PLANNED' ORDER BY CASE WHEN family='weather' THEN 0 ELSE 1 END,key LIMIT ?",(limit,)).fetchall()
  return rows
@@ -148,7 +151,7 @@ def _adaptive_failure_handling(c,pkg):
     result=[]
     for row in c.execute('SELECT * FROM jobs WHERE state="FAILED"').fetchall():
         k=row['key']
-        if row['family']=='canary' or row['family']=='merit' or row['depth']>=6:
+        if row['family']=='merit' or row['depth']>=6:
             core.transition(c,k,'FAILED','QUARANTINED',error=row['error'] or 'No scientifically verified automatic recovery')
             continue
         members=membership(pkg,k)
@@ -159,12 +162,12 @@ def _adaptive_failure_handling(c,pkg):
         out=pathlib.Path(pkg)/'plans'/'adaptive_splits';out.mkdir(parents=True,exist_ok=True)
         for half in (left,right):
             pairs=sorted(half.grid_id.astype(str)+'@'+half.date_utc.astype(str))
-            child='W8S_'+core.hashkey(*pairs)
+            child=('C8S_' if row['family'] in ('canary','canary_child') else 'W8S_')+core.hashkey(*pairs)
             fp=out/(child+'.parquet')
             if not fp.exists():half.assign(batch_id=child).to_parquet(fp,index=False)
             if child==k:raise ValueError('Adaptive split cycle')
             c.execute('INSERT OR IGNORE INTO jobs(key,family,state,parent,source_sha,description,n_rows,depth,updated) VALUES(?,?,?,?,?,?,?,?,?)',
-             (child,'weather','PLANNED',k,core.sha(fp),'ADAPTIVELY_SPLIT_'+k,len(half),int(row['depth'])+1,core.timestamp()))
+             (child,'canary_child' if row['family'] in ('canary','canary_child') else 'weather','PLANNED',k,core.sha(fp),'ADAPTIVELY_SPLIT_'+k,len(half),int(row['depth'])+1,core.timestamp()))
             result.append(child)
         core.transition(c,k,'FAILED','SPLIT')
     return result
@@ -189,7 +192,12 @@ def _submit(c,ee,root,pkg,row,mode,bucket):
 
 def _legacy_canary(c):
  r=c.execute("SELECT state FROM jobs WHERE family='canary' LIMIT 1").fetchone()
- return bool(r and r[0]=='ACCEPTED')
+ if not r:return False
+ if r[0]=='ACCEPTED':return True
+ if r[0]!='SPLIT':return False
+ children=c.execute("SELECT state FROM jobs WHERE family='canary_child'").fetchall()
+ return bool(children) and all(z[0] in ('ACCEPTED','SPLIT') for z in children) and any(z[0]=='ACCEPTED' for z in children)
+
 
 def one_tick(root,pkg,mode,bucket,max_inflight=5,max_unaccepted=20,budget_used_eecu=None,budget_limit_eecu=900,execute=False):
  if budget_used_eecu is None and execute:raise ValueError('Must provide verified CURRENT MONTH project EECU usage. See Cloud Monitoring, not v7 pilot extrapolation')
@@ -213,7 +221,7 @@ def one_tick(root,pkg,mode,bucket,max_inflight=5,max_unaccepted=20,budget_used_e
  if budget_used_eecu+cost+max_inflight*0.5>budget_limit_eecu:
   return {'status':'BUDGET_FUSE_PAUSE','project_month_used_supplied':budget_used_eecu,
    'v8_logged_eecu':cost,'n_running':incomplete,'n_newly_accepted':got}
- if c.execute("SELECT 1 FROM jobs WHERE family='canary' AND state='QUARANTINED' LIMIT 1").fetchone():
+ if c.execute("SELECT 1 FROM jobs WHERE family IN ('canary','canary_child') AND state='QUARANTINED' LIMIT 1").fetchone():
   return {'status':'CANARY_SCIENTIFIC_QC_FAILED_GLOBAL_WEATHER_BLOCKED','n_unresolved':unaccepted}
  if c.execute("SELECT COUNT(*) FROM jobs WHERE state='QUARANTINED'").fetchone()[0]>0:
   return {'status':'SCIENTIFIC_TASK_QUARANTINED_PAUSE','hint':'Resolve failed source/geometry/CSV with Codex; cannot publish a silently incomplete global panel'}

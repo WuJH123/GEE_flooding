@@ -32,3 +32,11 @@ def test_local_download_extension_identity_not_accidental_prefix():
 def test_ee_export_enforces_namespace_before_cloud_call():
  with pytest.raises(ValueError,match='namespace'):
   eeops.export(None,'weather',None,'NOT_V8_NAME')
+
+def test_antimeridian_weather_periodic_segments_conserve_width():
+ from cee_v8.eeops import projected_seam_segments
+ for x in [-1745,-1740,-1737,1736,1740,1750,1100]:
+  parts=projected_seam_segments(x,200)
+  assert 1<=len(parts)<=2
+  assert abs(sum(z[2]-z[0] for z in parts)-10000)<1e-5
+  assert all(z[0]<z[2] for z in parts)

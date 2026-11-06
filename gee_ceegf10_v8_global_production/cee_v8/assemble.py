@@ -12,9 +12,9 @@ def weather(root,pkg,out=None,allow_partial=False):
  original=pd.read_parquet(pl/'accepted_v7_weather.parquet')
  frames=[original[core.FIELDS].copy()]
  seen=[]
- jobs=db.execute("SELECT * FROM jobs WHERE family IN ('weather','canary') AND state='ACCEPTED'").fetchall()
+ jobs=db.execute("SELECT * FROM jobs WHERE family IN ('weather','canary','canary_child') AND state='ACCEPTED'").fetchall()
  for z in jobs:
-  if z['family']=='canary':continue  # canary matches already reused v7 rows
+  if z['family'] in ('canary','canary_child'):continue  # canary matches already reused v7 rows
   fn=p/'downloads'/(core.RUN+'_'+z['key']+'.csv')
   if not fn.is_file() or core.sha(fn)!=z['local_sha']:raise ValueError('Accepted EE source file changed: '+str(fn))
   f=pd.read_csv(fn,dtype={'grid_id':'string','date_utc':'string'})
