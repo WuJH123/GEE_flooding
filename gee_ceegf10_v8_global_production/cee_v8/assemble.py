@@ -4,6 +4,7 @@ import pathlib,json
 import pandas as pd
 import numpy as np
 from . import core,runner,qc
+from .pilot_v9 import _accepted_reference
 
 def weather(root,pkg,out=None,allow_partial=False):
  p=pathlib.Path(pkg);pl=p/'plans';db=core.dbopen(p/'reports'/'v8_production.sqlite')
@@ -49,8 +50,7 @@ def merit(root,pkg,out=None,allow_partial=False):
  frozen=core.read_json(p/'plans'/'frozen_plan_qc.json')
  if not frozen or core.sha(old)!=frozen.get('v7_accepted_merit_parquet_sha256'):
   raise ValueError('Accepted 863-cell V7 source has changed since V8 plan freezing')
- base=pd.read_parquet(old)
- if len(base)!=863 or base.grid_id.duplicated().any():raise ValueError('V7 863-cell acceptance changed')
+ base=_accepted_reference(pd.read_parquet(old))
  base=base[['grid_id']+[x for x in core.BANDS if x in base.columns]].copy()
  if not set(core.BANDS)<=set(base):raise ValueError('V7 science-accepted MERIT source missing bands')
  batches=[];db=core.dbopen(p/'reports'/'v8_production.sqlite')

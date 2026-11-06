@@ -155,7 +155,7 @@ def choose_factor_from_live(records,min_reference_cells=50,max_median_task_secon
     accepted=[]
     by=defaultdict(list)
     for x in records:
-        if x.get('state')!='SUCCEEDED' or not x.get('source_sha256') or not x.get('reference_sha256'):
+        if x.get('state')!='ACCEPTED' or not x.get('source_sha256') or not x.get('reference_sha256'):
             continue
         if not x.get('task_id') or not isinstance(x.get('eecu_h'),(float,int)):
             continue

@@ -1,10 +1,17 @@
 """Authenticated bounded download, exact name and immutable content hash.
 
-Production automation requires configured Drive ADC or GCS bucket (GCS may incur
-Google Cloud charges). Download is atomic .part -> final after complete response.
+Drive downloads reuse the registered Earth Engine OAuth credential and the
+independent project as quota project. GCS requires an existing authorized bucket.
+Download is atomic .part -> final after a complete response.
 """
 from __future__ import annotations
 import pathlib,os
+from . import core
+
+def _drive_session():
+ import ee
+ from google.auth.transport.requests import AuthorizedSession
+ return AuthorizedSession(ee.data.get_persistent_credentials().with_quota_project(core.PROJECT))
 
 def check_auth(mode,bucket=None):
  if mode=='gcs':
@@ -14,14 +21,10 @@ def check_auth(mode,bucket=None):
   if b is None:raise ValueError('GCS bucket unavailable/permission denied: '+bucket)
   return {'mode':'gcs','bucket':bucket}
  if mode=='drive':
-  import google.auth
-  scopes=['https://www.googleapis.com/auth/drive.readonly']
-  creds,_=google.auth.default(scopes=scopes)
-  if not creds.has_scopes(scopes):raise ValueError('Drive ADC lacks drive.readonly scope')
-  from googleapiclient.discovery import build
-  service=build('drive','v3',credentials=creds,cache_discovery=False)
-  service.files().list(pageSize=1,fields='files(id)').execute()
-  return {'mode':'drive','drive_adc':True}
+  response=_drive_session().get('https://www.googleapis.com/drive/v3/files',
+       params={'pageSize':1,'fields':'files(id)'},timeout=60)
+  response.raise_for_status()
+  return {'mode':'drive','credential_source':'earthengine_persistent'}
  raise ValueError('mode must be drive/gcs')
 
 def _write_bytes(target,content):
@@ -43,17 +46,21 @@ def get_source(name,out_dir,mode,bucket=None,folder=None,kind="weather"):
   if not blob.exists():return None
   return _write_bytes(p,blob.download_as_bytes())
  if mode=='drive':
-  import google.auth
-  from googleapiclient.discovery import build
-  scopes=['https://www.googleapis.com/auth/drive.readonly']
-  creds,_=google.auth.default(scopes=scopes)
-  drive=build('drive','v3',credentials=creds,cache_discovery=False)
+  drive=_drive_session()
   safe=(name+ext).replace("'", "\\'")
-  r=drive.files().list(q=f"name = '{safe}' and trashed = false",fields='nextPageToken,files(id,name,mimeType,parents)',pageSize=30).execute()
-  found=r.get('files',[])
+  response=drive.get('https://www.googleapis.com/drive/v3/files',params={
+      'q':f"name = '{safe}' and trashed = false",
+      'fields':'nextPageToken,files(id,name,mimeType,parents)',
+      'pageSize':30},timeout=60)
+  response.raise_for_status()
+  r=response.json();found=r.get('files',[])
+  if r.get('nextPageToken'):
+   raise ValueError('More than one page of same-named Drive exports: '+name)
   if len(found)>1:
    raise ValueError('Ambiguous duplicated Google Drive export names; cannot select unverified result: '+name)
   if not found:return None
-  data=drive.files().get_media(fileId=found[0]['id']).execute()
-  return _write_bytes(p,data)
+  response=drive.get(f"https://www.googleapis.com/drive/v3/files/{found[0]['id']}",
+                     params={'alt':'media'},timeout=120)
+  response.raise_for_status()
+  return _write_bytes(p,response.content)
  raise ValueError(mode)
