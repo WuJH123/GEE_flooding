@@ -1,0 +1,39 @@
+name: CEE GF10 v8 Global GEE Production CI (offline)
+on:
+  push:
+    paths:
+      - 'gee_ceegf10_v8_global_production/**'
+      - '.github/workflows/cee-v8-global-production.yml'
+  pull_request:
+    paths:
+      - 'gee_ceegf10_v8_global_production/**'
+      - '.github/workflows/cee-v8-global-production.yml'
+permissions:
+  contents: read
+jobs:
+  offline-production-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install V8 code dependencies
+        run: python -m pip install -r gee_ceegf10_v8_global_production/requirements.txt
+      - name: Compile and run all tests with warnings as errors
+        env:
+          PYTHONPATH: gee_ceegf10_v8_global_production
+        run: |
+          python -m compileall -q gee_ceegf10_v8_global_production/cee_v8
+          python -m pytest gee_ceegf10_v8_global_production/tests -q -W error
+      - name: Frozen source manifest verification
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib
+          root=pathlib.Path('gee_ceegf10_v8_global_production')
+          manifest=json.loads((root/'SOURCE_SHA256.json').read_text('utf8'))['files']
+          for name,want in manifest.items():
+              actual=hashlib.sha256((root/name).read_bytes()).hexdigest()
+              assert actual==want,(name,want,actual)
+          print('VERIFIED',len(manifest),'source files')
+          PY

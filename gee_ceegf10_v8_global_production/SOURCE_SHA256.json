@@ -1,0 +1,26 @@
+{
+  "version": "2026-11-06-v8-3-coastal-exact-land-membership",
+  "files": {
+    "README_CN.md": "de786d3c05d823ba48dffc2c66d0467b3a6cc44741fde98b89ac331a3d36d1a5",
+    "cee_v8/__init__.py": "3dcd08205396de011a9086e6012855fbc410d17b833d1e52698655190a43ca9c",
+    "cee_v8/__main__.py": "7225097a5dc4f99152ba1dc5324ed73d5ee09508cbc5268fa3b1114905340036",
+    "cee_v8/assemble.py": "2c6ab049949514eab866e86693e23f8234caac6409c9602ef60d039dd6fcd94e",
+    "cee_v8/cli.py": "6d5c5457571031d8d27ce30bdb237f07355cff1d504fe9905bcf3b30032c9032",
+    "cee_v8/core.py": "75b02a00def003476b497408fae9bc0d7efd17ac6f7561bab4439a5554f488c6",
+    "cee_v8/download.py": "d77446d7006418eff2d043a0084f64860d46b4ca0829c51dae8c8c0fd3abdec4",
+    "cee_v8/eeops.py": "b531522007f6898d6af2c644d4eb267bad69a36bb10015698db77ed9eb8c4828",
+    "cee_v8/plan.py": "6d49c9c8bba03622321d39b46e6bf37333e5075fba4009925655b94d2c53c5c7",
+    "cee_v8/qc.py": "c7038290cb9d9f280d768e90ee03ce41a604ae7f1e31f8d1a5902d2b5e32a477",
+    "cee_v8/runner.py": "03d6357e34fedc717b8d47fa3bb652b0a682574d4040124c16e87efe8962d5cc",
+    "cee_v8/seam.py": "28d9fcf9dc6327e572ca51bb20f6e9162b4ceb0f521a85464175c78f4507909d",
+    "docs/CODEX_FULL_RUN_PROMPT_CN.md": "b85a020b829ea2b4d1711408501745a4bee491d45cda9c82ac31ea6c3bd2d90c",
+    "requirements.txt": "3cafb0683bc86981fcd31a60a0137d57f8a29692b4a9eb5e8b787360915dcb07",
+    "scripts/00_prepare_and_register.ps1": "71eced8e75918b4f757005bd16b9e971034d248df26a13ffe9821b6f8f27e92e",
+    "scripts/01_run_global_automatic.ps1": "4905f1906a228f3dcd9528c595accc673c3e69ef27d9a04abf2ef72e70efbb87",
+    "tests/test_v8_ledger_and_io.py": "12894c1d1d956030aa8f61dadbb21e1cbe9bc5db2faa9bc35f056f0d41f57c3b",
+    "tests/test_v8_science.py": "898ac747cfac2bebc6dc0b4ff3869d0b217208bea33bdc3948db3f0e092aa8ed"
+  },
+  "source_frozen_gf10_sha256": "4ebf864cf2f02ed02faaab42ccb179bb8d6e0a6293aee5e6a155f6ed2b21858d",
+  "local_offline_tests": "20 passed",
+  "no_live_gee_submissions_from_this_environment": true
+}
