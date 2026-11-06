@@ -87,3 +87,29 @@ def test_band_contract_frozen():
 def test_invalid_source_eecu_precheck():
  with pytest.raises(ValueError,match="CURRENT"):
   runner.one_tick('any','/tmp/nonexistent','drive',None,execute=True,budget_used_eecu=None)
+
+def test_merit_coastal_rectangle_checks_only_frozen_land_membership():
+ """A 2x2 EE crop contains two finite ocean pixels: only land IDs count."""
+ import rasterio
+ from rasterio.transform import from_origin
+ with tempfile.TemporaryDirectory() as t:
+  path=pathlib.Path(t)/'coastal.tif'
+  image=np.ones((16,2,2),dtype='float32')
+  # One may have available ocean-side values because MERIT valid fraction is 0.
+  image[4,0,:]=0.0
+  row=pd.Series({'crop_x0':0,'crop_y0':0,'width':2,'height':2,
+                 'n_land_cells':2,'land_ids':'0_0;1_0'})
+  with rasterio.open(path,'w',driver='GTiff',width=2,height=2,count=16,dtype='float32',
+                     crs='EPSG:6933',transform=from_origin(0,20000,10000,10000),
+                     nodata=-9999) as dst:dst.write(image)
+  z=qc.merit(path,row)
+  assert z['n_GHSHG_land_cells_verified']==2
+  assert z['n_pixels']==4
+  # The lower left is an expected land cell, so a completely absent source
+  # is a hard QC failure even though the *other* pixels have valid numbers.
+  image[:,1,0]=-9999
+  with rasterio.open(path,'w',driver='GTiff',width=2,height=2,count=16,dtype='float32',
+                     crs='EPSG:6933',transform=from_origin(0,20000,10000,10000),
+                     nodata=-9999) as dst:dst.write(image)
+  with pytest.raises(ValueError,match='land cell has no source values'):
+   qc.merit(path,row)

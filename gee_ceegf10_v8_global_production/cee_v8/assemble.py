@@ -59,12 +59,19 @@ def merit(root,pkg,out=None,allow_partial=False):
   if core.sha(fp)!=z['local_sha']:raise ValueError('MERIT accepted source hash changed')
   row=runner.merit_row(p,z['key']); x=int(row.crop_x0);y=int(row.crop_y0);w=int(row.width);h=int(row.height)
   with rasterio.open(fp) as ds:a=ds.read(masked=True).filled(np.nan)
+  # Keep ONLY the originally frozen GF10 positive-land cells. A source
+  # raster can legitimately contain ocean values within a rectangular export.
+  land_ids=set(str(row.land_ids).split(';'))
+  if len(land_ids)!=int(row.n_land_cells):raise ValueError('Lost MERIT land identity contract')
   records=[]
-  for iy in range(h):
-   for ix in range(w):
-    g=f'{x+ix}_{y+h-iy-1}'
-    if not np.isfinite(a[:,iy,ix]).any():continue
-    records.append((g,*map(float,a[:,iy,ix])))
+  for gid in sorted(land_ids):
+   gx,gy=map(int,gid.split('_'))
+   ix=gx-x;iy=y+h-gy-1
+   if not (0<=iy<h and 0<=ix<w):raise ValueError('Land ID outside MERIT rectangle: '+gid)
+   if not np.isfinite(a[:,iy,ix]).any():
+    raise ValueError('Accepted MERIT tile actually lacks land cell '+gid)
+   records.append((gid,*map(float,a[:,iy,ix])))
+  if len(records)!=int(row.n_land_cells):raise ValueError('MERIT tile land count disagrees with frozen plan')
   batches.extend(records)
  output=pd.DataFrame(batches,columns=['grid_id']+core.BANDS)
  if output.grid_id.duplicated().any() or base.grid_id.astype(str).isin(output.grid_id).any():raise ValueError('MERIT tile overlaps old accepted cells')

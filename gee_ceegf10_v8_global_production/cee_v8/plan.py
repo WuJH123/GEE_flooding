@@ -194,6 +194,28 @@ def merit_plan(root):
  remain=plan.loc[~plan.tile_key.isin(done)].copy()
  remain['batch_id']='M8_'+remain.tile_key.astype(str)
  remain['source_family']='MERIT_HYDRO_16_BANDS_80KM_BUFFER'
+ # Freeze exact membership of LAND cells in each rectangular EE image export.
+ # A GEE-exported rectangle may contain ocean pixels with finite mask/validity
+ # values; these are not GF10 land observations and MUST NOT enter the wide table.
+ grid=core.validate_grid(f['grid'])[['grid_id','grid_x','grid_y']].copy()
+ grid['parent_x']=(grid.grid_x.astype('int64')//10)*10
+ grid['parent_y']=(grid.grid_y.astype('int64')//10)*10
+ grid['tile_key']='merit_'+grid.parent_x.astype(str)+'_'+grid.parent_y.astype(str)+'_10'
+ land=grid.groupby('tile_key',sort=False)['grid_id'].agg(lambda z:';'.join(sorted(z.astype(str)))).to_dict()
+ remain['land_ids']=remain.tile_key.map(land)
+ if remain.land_ids.isna().any():raise ValueError('MERIT safe plan has no frozen land IDs')
+ actual=remain.land_ids.str.split(';').str.len()
+ if not actual.eq(remain.n_land_cells.astype(int)).all():
+  bad=remain.loc[~actual.eq(remain.n_land_cells.astype(int)),'tile_key'].head(5).tolist()
+  raise ValueError('MERIT safe rectangular crop vs GF10 frozen membership mismatch: '+str(bad))
+ # All enumerated expected land cells must also lie within the actual cropped
+ # rectangle, since coastal crops can differ from the 10x10 parent tile.
+ for r in remain.itertuples(index=False):
+  for gid in r.land_ids.split(';'):
+   gx,gy=map(int,gid.split('_'))
+   if not (int(r.crop_x0)<=gx<int(r.crop_x0)+int(r.width) and
+           int(r.crop_y0)<=gy<int(r.crop_y0)+int(r.height)):
+    raise ValueError('GF10 land identity outside MERIT cropped rectangle: '+r.tile_key+' '+gid)
  quarantine=pd.read_csv(f['v4']/'plans'/'merit_quarantine_v4.csv')
  if len(quarantine)!=14:raise ValueError('Expected 14 quarantined meridian blocks')
  return remain,quarantine

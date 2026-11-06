@@ -55,6 +55,23 @@ def merit(path,row):
   if max(abs(float(a)-float(b)) for a,b in zip(tuple(s.transform)[:6],expect))>1e-6:raise ValueError('MERIT affine mismatch')
   a=s.read(masked=True).filled(np.nan)
  if not np.any(np.isfinite(a)):raise ValueError('MERIT positive-land tile has no valid values')
+ # Reject a nominally successful export if it lacks *any* exact frozen GF10
+ # land identity. Inspect the V4 crop origin and true top-down raster row.
+ if 'land_ids' not in row.index or not isinstance(row['land_ids'],str):
+  raise ValueError('Missing immutable per-tile GF10 land membership')
+ land_ids=row['land_ids'].split(';')
+ if len(land_ids)!=int(row.n_land_cells) or len(set(land_ids))!=len(land_ids):
+  raise ValueError('Invalid per-tile GF10 land identity conservation')
+ min_source=1.0
+ for gid in land_ids:
+  gx,gy=map(int,gid.split('_'))
+  iy=y+h-gy-1;ix=gx-x
+  if not (0<=iy<h and 0<=ix<w):raise ValueError('Frozen land ID outside MERIT raster crop: '+gid)
+  if not np.isfinite(a[:,iy,ix]).any():
+   raise ValueError('MERIT exported land cell has no source values: '+gid)
+  if not np.isfinite(a[4,iy,ix]):
+   raise ValueError('MERIT land-cell validity band absent: '+gid)
+  min_source=min(min_source,float(a[4,iy,ix]))
  for i in [3,4,5,6,7,9]:
   z=a[i];b=np.isfinite(z)
   if b.any() and ((z[b]<-0.001)|(z[b]>1.001)).any():raise ValueError('Invalid ratio MERIT band '+core.BANDS[i])
@@ -63,4 +80,5 @@ def merit(path,row):
   if b.any() and (z[b]<-0.001).any():raise ValueError('Physically negative MERIT band '+core.BANDS[i])
  return {'status':'MERIT_16_BAND_RECTANGULAR_AFFINE_QC_PASS','n_land_expected':int(row.n_land_cells),
  'n_pixels':w*h,'n_pixels_any_finite':int(np.isfinite(a).any(axis=0).sum()),
- 'file_sha256':core.sha(p),'source_contract':core.BANDS,'not_flood_observation':True}
+ 'file_sha256':core.sha(p),'source_contract':core.BANDS,'not_flood_observation':True,
+ 'n_GHSHG_land_cells_verified':len(land_ids),'minimum_merit_source_valid_fraction_land':min_source}
