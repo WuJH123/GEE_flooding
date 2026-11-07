@@ -283,6 +283,35 @@ def status(refresh: bool) -> dict:
             "reported_task_cost_count": costs[0], "reported_task_eecu_h": costs[1]}
 
 
+def recover_intent(key: str) -> dict:
+    """Recover only an unstarted intent after two independent remote listings."""
+    load_plan()
+    ee.Initialize(project=core.PROJECT)
+    name = "CEE_GF10_MERIT_HYBRID_V10_" + key
+    tasks = ee.data.getTaskList()
+    operations = ee.data.listOperations()
+    task_matches = [item for item in tasks if item.get("description") == name]
+    operation_matches = [item for item in operations if name in str(item)]
+    if task_matches or operation_matches:
+        raise RuntimeError("Remote task/operation exists; intent must be reconciled, not retried")
+    with db() as conn:
+        row = conn.execute("SELECT * FROM jobs WHERE task_key=?", (key,)).fetchone()
+        if row is None or row["state"] != "SUBMISSION_INTENT" or row["task_id"]:
+            raise RuntimeError("Only an ID-less SUBMISSION_INTENT is recoverable")
+        age = dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(row["updated_utc"])
+        if age.total_seconds() < 30:
+            raise RuntimeError("Wait for GEE listing consistency before recovering intent")
+        evidence = {"task_key": key, "name": name, "time_utc": now(),
+                    "intent_age_seconds": age.total_seconds(),
+                    "getTaskList_count": len(tasks), "listOperations_count": len(operations),
+                    "exact_remote_task_matches": 0, "operation_description_matches": 0,
+                    "old_state": "SUBMISSION_INTENT", "new_state": "PLANNED",
+                    "no_GEE_task_was_retried": True}
+        core.write_json(HERE / ("intent_recovery_" + key + ".json"), evidence)
+        change(conn, key, "PLANNED", error="INTENT_RECOVERED_NO_REMOTE_OPERATION")
+    return evidence
+
+
 def audit(limit: int) -> dict:
     if not 1 <= limit <= 100:
         raise ValueError("QC batch limit must be 1-100")
@@ -367,7 +396,7 @@ def audit(limit: int) -> dict:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["init", "status", "submit", "audit"])
+    parser.add_argument("command", choices=["init", "status", "submit", "audit", "recover-intent"])
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--refresh", action="store_true")
     parser.add_argument("--batch-limit", type=int, default=10)
@@ -380,6 +409,10 @@ if __name__ == "__main__":
         result = status(args.refresh)
     elif args.command == "submit":
         result = submit(args.execute, args.batch_limit, args.budget_eecu, args.task_key)
+    elif args.command == "recover-intent":
+        if not args.task_key or len(args.task_key) != 1:
+            raise ValueError("Provide exactly one --task-key for intent recovery")
+        result = recover_intent(args.task_key[0])
     else:
         result = audit(args.batch_limit)
     print(json.dumps(result, indent=2, default=str))
