@@ -77,3 +77,10 @@ $PY = 'E:\GEE_flooding\.venv\Scripts\python.exe'
 14 个原始接缝父块、450 个 GF10 已全部产出并通过成员守恒、源像元哈希、物理约束、独立单格复算及 3 个非接缝参照。正式接缝数据文件为 `merit_seam450_SOURCE_QC_PASS.parquet`，SHA-256 `d088a64183c273e4357629432d04b79ca955831dbece463e51f1c9a79c2e0b65`；3 格无 MERIT 源覆盖保留为空值。独立方法与常规安全区方法通过 `source_task_key` 分别记载。安全区云任务尚未全量完成前，**不能**把合并 Parquet 称为全球完成。
 
 预算口径见 `budget_v10.py` 和 `v10_budget_interpretation.json`。Google 的 `in_progress_usage_time` 在请求运行期间报告，`usage_time` 在成功结束时报告，月累计存在同一请求的重叠；两列直接相加只能作为极保守上界，**不是实际已用 EECU**。后续采用已完成请求、在途 operation 与非重复计数指标交叉核对，并对尚未运行任务做单独费用预测。
+# 高纬 MERIT 失败块恢复（2026-11-08）
+
+原 60×60 高纬直接栅格任务有 9 个因 `Reprojection output too large` 失败，另有 34 个同风险任务取消。原始任务、费用和错误记录保留在 `merit_hybrid_v10.sqlite`。运行 `python merit_highlat_split_v10.py plan` 将这 43 个父任务的 127,921 个冻结 GF10 ID 精确划分为 172 个非重叠子任务。既有通过真实 QC 的 386 格试验被复用；新的 175 格高纬试验也已通过真实 GEE、Drive GeoTIFF 和 16 波段 QC。两者不代表剩余子任务已完成。
+
+`batch-submit` 默认只预览。先运行 `python merit_highlat_split_v10.py batch-submit --batch-limit 10` 核对，然后加 `--execute` 提交。单批上限 50，提交前查询项目实际监控额度（900 EECU 小时暂停线）和既有拆分任务失败状态；每个任务在 `task.start()` 前保存唯一意图。任务云端执行不依赖本机持续开机。完成后运行 `python merit_highlat_split_v10.py batch-audit --batch-limit 10`，只把 `QC_PASS` 文件并入 `assemble_merit_hybrid_v10.py`。`merit_hybrid_audit_loop_v10.py` 只负责原有成功任务的 Drive 下载和科研 QC，不提交 GEE 任务。
+
+该恢复流程严格保留原 MERIT 16 波段表达式、EPSG:6933 原点及 10 km 输出。若任何 30 km 子任务失败或数值 QC 失败，停止继续提交并定位该子任务；不得把 `COMPLETED` 误记为 `QC_PASS`。全域静态产品仍须达到 1,395,471 个原始 GF10 ID 且无重复，才会输出 `merit_hydro_GLOBAL_QC_PASS.parquet`。
