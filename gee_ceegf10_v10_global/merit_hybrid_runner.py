@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import io
 import json
 import shutil
@@ -312,18 +313,29 @@ def recover_intent(key: str) -> dict:
     return evidence
 
 
-def audit(limit: int) -> dict:
+def audit(limit: int, native_shard_index: int | None = None,
+          native_shard_count: int | None = None) -> dict:
     if not 1 <= limit <= 100:
         raise ValueError("QC batch limit must be 1-100")
+    sharded = native_shard_index is not None or native_shard_count is not None
+    if sharded and (native_shard_count is None or native_shard_index is None or
+                    native_shard_count < 2 or not 0 <= native_shard_index < native_shard_count):
+        raise ValueError("Native QC shard needs 0 <= index < count and count >= 2")
     members, tasks, _ = load_plan()
     ee.Initialize(project=core.PROJECT)
     remote = ee.data.getTaskList()
     with db() as conn:
         reconcile(conn, remote)
-        rows = conn.execute("SELECT * FROM jobs WHERE state='GEE_SUCCEEDED' OR "
-                            "(state='QC_FAIL' AND error='HAND low-elevation threshold fractions not nested') "
-                            "ORDER BY task_key LIMIT ?",
-                            (limit,)).fetchall()
+        query = ("SELECT * FROM jobs WHERE (state='GEE_SUCCEEDED' OR "
+                 "(state='QC_FAIL' AND error='HAND low-elevation threshold fractions not nested'))")
+        if sharded:
+            query += " AND method='NATIVE_WEIGHTED'"
+        rows = conn.execute(query + " ORDER BY task_key").fetchall()
+        if sharded:
+            rows = [row for row in rows if
+                    int.from_bytes(hashlib.blake2s(row["task_key"].encode(), digest_size=4).digest(),
+                                   "big") % native_shard_count == native_shard_index]
+        rows = rows[:limit]
         task_index = tasks.set_index("task_key")
         results = []
         OUT.mkdir(parents=True, exist_ok=True)
@@ -400,6 +412,8 @@ if __name__ == "__main__":
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--refresh", action="store_true")
     parser.add_argument("--batch-limit", type=int, default=10)
+    parser.add_argument("--native-shard-index", type=int)
+    parser.add_argument("--native-shard-count", type=int)
     parser.add_argument("--budget-eecu", type=float, default=900)
     parser.add_argument("--task-key", action="append")
     args = parser.parse_args()
@@ -414,5 +428,5 @@ if __name__ == "__main__":
             raise ValueError("Provide exactly one --task-key for intent recovery")
         result = recover_intent(args.task_key[0])
     else:
-        result = audit(args.batch_limit)
+        result = audit(args.batch_limit, args.native_shard_index, args.native_shard_count)
     print(json.dumps(result, indent=2, default=str))
