@@ -70,4 +70,10 @@ $PY = 'E:\GEE_flooding\.venv\Scripts\python.exe'
 
 本仓库目录保存生产**源码快照**；真实 GF10、输入 Parquet、GEE 任务账本、Drive GeoTIFF/CSV 和 QC 报告在本机 `E:\GEE_flooding\CEE_GF10_COST_OPT_V10_20261106`，不得把空仓库源码视为已生产数据。`local_science_qc.py` 是在上述真实输入存在时运行的本地回归测试，未命名为 pytest 自动收集文件。源数据和任务凭证不得提交 GitHub。
 
+## 接缝 450 格的独立恢复（后续增补）
+
+直接栅格导出在西缘真实触发 `Reprojection output too large`，GEE `reduceRegion` 在分割后的经度接缝处又与原生像元交叠统计不一致。因此 `seam_exact_parent_v10.py` 从官方 `MERIT/Hydro/v1_0_1` 读取原始 3 弧秒像元，并用 GEE `computePixels` 计算同源坡度；本地仅对原始 EPSG:6933 GF10 与原生像元的精确交叠面积做 16 项汇总。该方法在三个非接缝已验收格（内陆、沿海、西缘高纬）逐项通过 16 指标交叉对照。
+
+14 个原始接缝父块、450 个 GF10 已全部产出并通过成员守恒、源像元哈希、物理约束、独立单格复算及 3 个非接缝参照。正式接缝数据文件为 `merit_seam450_SOURCE_QC_PASS.parquet`，SHA-256 `d088a64183c273e4357629432d04b79ca955831dbece463e51f1c9a79c2e0b65`；3 格无 MERIT 源覆盖保留为空值。独立方法与常规安全区方法通过 `source_task_key` 分别记载。安全区云任务尚未全量完成前，**不能**把合并 Parquet 称为全球完成。
+
 预算口径见 `budget_v10.py` 和 `v10_budget_interpretation.json`。Google 的 `in_progress_usage_time` 在请求运行期间报告，`usage_time` 在成功结束时报告，月累计存在同一请求的重叠；两列直接相加只能作为极保守上界，**不是实际已用 EECU**。后续采用已完成请求、在途 operation 与非重复计数指标交叉核对，并对尚未运行任务做单独费用预测。
