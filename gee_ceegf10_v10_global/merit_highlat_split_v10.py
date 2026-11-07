@@ -238,12 +238,42 @@ def batch_submit(limit: int, execute: bool):
     budget = budget_read()
     if budget["non_double_counting_usage_indicator_eecu_h"] >= 900:
         raise RuntimeError("Monthly 900 EECU-h submission pause reached")
+    remote_names = {t.get("description") for t in remote}
+    members = pd.read_parquet(MEMBERS, columns=["grid_id", "grid_x", "grid_y", "task_key"])
+    wkt = core.read_json(ROOT / "CEE_GF10_GEE_RECOVERY_V4_20261105/config/recovery.json")["crs_wkt"]
+    metric_image = image(ee, wkt).unmask(-9999)
     submitted = []
     for row in chosen.itertuples(index=False):
-        result = submit(str(row.parent), int(row.quadrant), True)
-        if result.get("status") != "SUBMITTED_NOT_QC":
-            raise RuntimeError("Unexpected high-lat split submission result")
-        submitted.append({"key": result["key"], "task_id": result["task_id"]})
+        key, directory, name = paths(str(row.parent), int(row.quadrant))
+        if directory.exists() or name in remote_names:
+            raise RuntimeError("Existing local/remote split intent; cannot duplicate " + key)
+        part = members.loc[members.task_key.eq(row.parent) &
+                           members.grid_x.between(int(row.x0), int(row.x0 + row.width - 1)) &
+                           members.grid_y.between(int(row.y0), int(row.y0 + row.height - 1))].copy()
+        if len(part) != row.n_GF10 or part.grid_id.duplicated().any():
+            raise ValueError("Frozen split membership drift: " + key)
+        bbox = [int(row.x0) * 10000, int(row.y0) * 10000,
+                int(row.x0 + row.width) * 10000, int(row.y0 + row.height) * 10000]
+        task = ee.batch.Export.image.toDrive(
+            image=metric_image, description=name, folder=FOLDER, fileNamePrefix=name,
+            region=ee.Geometry.Rectangle(eeops.merit_export_interior(bbox), proj=wkt,
+                                         geodesic=False),
+            crs=wkt, crsTransform=[10000, 0, 0, 0, -10000, 0],
+            maxPixels=int(row.width * row.height), fileFormat="GeoTIFF",
+            formatOptions={"cloudOptimized": True, "noData": -9999})
+        directory.mkdir(parents=True, exist_ok=False)
+        part.to_parquet(directory / "input_GF10.parquet", index=False)
+        intent = {"status": "SUBMISSION_INTENT", "key": key, "parent": str(row.parent),
+                  "name": name, "x0": int(row.x0), "y0": int(row.y0),
+                  "width": int(row.width), "height": int(row.height),
+                  "n_GF10": len(part),
+                  "input_sha256": core.sha(directory / "input_GF10.parquet")}
+        core.write_json(directory / "intent.json", intent)
+        task.start()
+        intent.update(status="SUBMITTED_NOT_QC", task_id=task.id)
+        core.write_json(directory / "intent.json", intent)
+        remote_names.add(name)
+        submitted.append({"key": key, "task_id": task.id})
     batch = {"status": "SUBMITTED_NOT_QC", "submitted": submitted,
              "project_usage_indicator_before_eecu_h": budget["non_double_counting_usage_indicator_eecu_h"],
              "remaining_after": len(candidates) - len(submitted)}
