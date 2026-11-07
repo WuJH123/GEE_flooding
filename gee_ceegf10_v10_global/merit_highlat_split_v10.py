@@ -160,7 +160,7 @@ def submit(parent: str, quadrant: int, execute: bool):
     return intent
 
 
-def audit(parent: str, quadrant: int):
+def audit(parent: str, quadrant: int, remote_by_name=None):
     item = load(parent, quadrant)
     if item is None:
         return {"status": "EMPTY_QUADRANT"}
@@ -171,8 +171,11 @@ def audit(parent: str, quadrant: int):
     intent = core.read_json(directory / "intent.json")
     if intent["name"] != name or core.sha(directory / "input_GF10.parquet") != intent["input_sha256"]:
         raise ValueError("Split intent/input fingerprint mismatch")
-    ee.Initialize(project=core.PROJECT)
-    matches = [t for t in ee.data.getTaskList() if t.get("description") == name]
+    if remote_by_name is None:
+        ee.Initialize(project=core.PROJECT)
+        matches = [t for t in ee.data.getTaskList() if t.get("description") == name]
+    else:
+        matches = remote_by_name.get(name, [])
     if len(matches) != 1 or matches[0]["id"] != intent.get("task_id"):
         raise ValueError("Split GEE operation cannot be uniquely reconciled")
     remote = matches[0]
@@ -285,6 +288,10 @@ def batch_audit(limit: int):
     if not 1 <= limit <= 50:
         raise ValueError("Audit batch limit must be 1-50")
     rows = pd.read_csv(OUT / "plan.csv")
+    ee.Initialize(project=core.PROJECT)
+    remote_by_name = {}
+    for task in ee.data.getTaskList():
+        remote_by_name.setdefault(task.get("description"), []).append(task)
     results = []
     for row in rows.itertuples(index=False):
         directory = OUT / row.split_key
@@ -293,7 +300,7 @@ def batch_audit(limit: int):
         previous = directory / "audit.json"
         if previous.exists() and core.read_json(previous).get("status") == "QC_PASS":
             continue
-        result = audit(str(row.parent), int(row.quadrant))
+        result = audit(str(row.parent), int(row.quadrant), remote_by_name)
         results.append(result)
         if result.get("GEE_state") == "FAILED" or result.get("status") == "QC_FAIL":
             break
