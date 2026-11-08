@@ -84,3 +84,8 @@ $PY = 'E:\GEE_flooding\.venv\Scripts\python.exe'
 `batch-submit` 默认只预览。先运行 `python merit_highlat_split_v10.py batch-submit --batch-limit 10` 核对，然后加 `--execute` 提交。单批上限 50，提交前查询项目实际监控额度（900 EECU 小时暂停线）和既有拆分任务失败状态；每个任务在 `task.start()` 前保存唯一意图。任务云端执行不依赖本机持续开机。完成后运行 `python merit_highlat_split_v10.py batch-audit --batch-limit 10`，只把 `QC_PASS` 文件并入 `assemble_merit_hybrid_v10.py`。`merit_hybrid_audit_loop_v10.py` 只负责原有成功任务的 Drive 下载和科研 QC，不提交 GEE 任务。
 
 该恢复流程严格保留原 MERIT 16 波段表达式、EPSG:6933 原点及 10 km 输出。若任何 30 km 子任务失败或数值 QC 失败，停止继续提交并定位该子任务；不得把 `COMPLETED` 误记为 `QC_PASS`。全域静态产品仍须达到 1,395,471 个原始 GF10 ID 且无重复，才会输出 `merit_hydro_GLOBAL_QC_PASS.parquet`。
+# 全球成果验收记录（2026-11-08）
+
+本地独立执行 `verify_merit_final_v10.py`、`verify_weather_final_v10.py`、`assemble_fig2_exposure_v10.py` 和 `final_production_report_v10.py`。冻结的 1,395,471 个非南极 GF10 ID 全部在 `merit_hydro_GLOBAL_QC_PASS.parquet` 中且无重复；16 个 MERIT 指标顺序与物理约束均通过。接缝 450 格来自独立源像元验收。MERIT 原源未覆盖的 2,187 格保留缺测，坡度缺测共 3,306 格；不填零。`weather_exposure_GLOBAL_QC_PASS.parquet` 包含 275,152 个经过审计的 GF10×UTC 代理日期，覆盖 8,458 个格网；IMERG 观测数完整，ERA5 第一层土壤湿度 7,471 条缺测保留。`fig2_GF10_event_exposure_MERIT_IMERG_ERA5_QC_PASS.parquet` 是两份验收产品的一对多键联接，不能将未报道候选日期解释为真实无洪水阴性。
+
+最终源文件 SHA-256、每项缺测、任务数、实际登记 EECU 和项目月度 Monitoring 口径分别写在本机 `merit_independent_post_assembly_qc.json`、`weather_independent_post_assembly_qc.json`、`fig2_event_exposure_join_report.json` 和 `final_global_production_report_v10.json`。这些报告与大体积 Parquet 不进入 Git；在同一冻结 GF10 与验收任务目录中可重跑生成。
